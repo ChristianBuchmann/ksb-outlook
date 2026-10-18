@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
+           xsi:type="MailApp">
+  <Id>32a74d48-d39b-41bb-a09f-9403dc3d9452</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Künstlersekretariat Buchmann</ProviderName>
+  <DefaultLocale>de-DE</DefaultLocale>
+  <DisplayName DefaultValue="KSB Assistent"/>
+  <Description DefaultValue="Zeigt zu jeder Mail und jedem Entwurf, was wir wissen, warum er da ist und was zu entscheiden ist."/>
+  <IconUrl DefaultValue="https://christianbuchmann.github.io/ksb-outlook/bilder/symbol-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://christianbuchmann.github.io/ksb-outlook/bilder/symbol-128.png"/>
+  <SupportUrl DefaultValue="https://www.buchmann.at"/>
+  <AppDomains>
+    <AppDomain>https://christianbuchmann.github.io</AppDomain>
+    <AppDomain>https://gjbvlrztbejymrqctopj.supabase.co</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.1"/>
+    </Sets>
+  </Requirements>
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://christianbuchmann.github.io/ksb-outlook/index.html"/>
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+    <Form xsi:type="ItemEdit">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://christianbuchmann.github.io/ksb-outlook/index.html"/>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+  <Permissions>ReadWriteMailbox</Permissions>
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
+  </Rule>
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.3">
+        <bt:Set Name="Mailbox"/>
+      </bt:Sets>
+    </Requirements>
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="ksbLesenGruppe">
+                <Label resid="gruppe"/>
+                <Control xsi:type="Button" id="ksbLesenKnopf">
+                  <Label resid="knopf"/>
+                  <Supertip><Title resid="knopf"/><Description resid="tipp"/></Supertip>
+                  <Icon><bt:Image size="16" resid="i16"/><bt:Image size="32" resid="i32"/><bt:Image size="80" resid="i80"/></Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="seite"/>
+                                        </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="ksbSchreibenGruppe">
+                <Label resid="gruppe"/>
+                <Control xsi:type="Button" id="ksbSchreibenKnopf">
+                  <Label resid="knopf"/>
+                  <Supertip><Title resid="knopf"/><Description resid="tipp"/></Supertip>
+                  <Icon><bt:Image size="16" resid="i16"/><bt:Image size="32" resid="i32"/><bt:Image size="80" resid="i80"/></Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="seite"/>
+                                        </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="i16" DefaultValue="https://christianbuchmann.github.io/ksb-outlook/bilder/symbol-16.png"/>
+        <bt:Image id="i32" DefaultValue="https://christianbuchmann.github.io/ksb-outlook/bilder/symbol-32.png"/>
+        <bt:Image id="i80" DefaultValue="https://christianbuchmann.github.io/ksb-outlook/bilder/symbol-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="seite" DefaultValue="https://christianbuchmann.github.io/ksb-outlook/index.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="gruppe" DefaultValue="KSB"/>
+        <bt:String id="knopf" DefaultValue="Assistent"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="tipp" DefaultValue="Warum, was wir wissen, was zu entscheiden ist. Mit der Pinnadel bleibt die Leiste offen."/>
+      </bt:LongStrings>
+    </Resources>
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.8">
+          <bt:Set Name="Mailbox"/>
+        </bt:Sets>
+      </Requirements>
+      <Hosts>
+        <Host xsi:type="MailHost">
+          <DesktopFormFactor>
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="ksbLesenGruppe">
+                  <Label resid="gruppe"/>
+                  <Control xsi:type="Button" id="ksbLesenKnopf">
+                    <Label resid="knopf"/>
+                    <Supertip><Title resid="knopf"/><Description resid="tipp"/></Supertip>
+                    <Icon><bt:Image size="16" resid="i16"/><bt:Image size="32" resid="i32"/><bt:Image size="80" resid="i80"/></Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="seite"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="ksbSchreibenGruppe">
+                  <Label resid="gruppe"/>
+                  <Control xsi:type="Button" id="ksbSchreibenKnopf">
+                    <Label resid="knopf"/>
+                    <Supertip><Title resid="knopf"/><Description resid="tipp"/></Supertip>
+                    <Icon><bt:Image size="16" resid="i16"/><bt:Image size="32" resid="i32"/><bt:Image size="80" resid="i80"/></Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="seite"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+          </DesktopFormFactor>
+        </Host>
+      </Hosts>
+      <Resources>
+        <bt:Images>
+          <bt:Image id="i16" DefaultValue="https://christianbuchmann.github.io/ksb-outlook/bilder/symbol-16.png"/>
+          <bt:Image id="i32" DefaultValue="https://christianbuchmann.github.io/ksb-outlook/bilder/symbol-32.png"/>
+          <bt:Image id="i80" DefaultValue="https://christianbuchmann.github.io/ksb-outlook/bilder/symbol-80.png"/>
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="seite" DefaultValue="https://christianbuchmann.github.io/ksb-outlook/index.html"/>
+        </bt:Urls>
+        <bt:ShortStrings>
+          <bt:String id="gruppe" DefaultValue="KSB"/>
+          <bt:String id="knopf" DefaultValue="Assistent"/>
+        </bt:ShortStrings>
+        <bt:LongStrings>
+          <bt:String id="tipp" DefaultValue="Warum, was wir wissen, was zu entscheiden ist. Mit der Pinnadel bleibt die Leiste offen."/>
+        </bt:LongStrings>
+      </Resources>
+    </VersionOverrides>
+  </VersionOverrides>
+</OfficeApp>

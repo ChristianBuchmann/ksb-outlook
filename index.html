@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KSB Assistent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+:root{
+  --papier:#FAFAF8; --flaeche:#FFFFFF; --linie:#E3E1DC; --linie2:#CFCCC5;
+  --tinte:#1E2125; --grau:#5E646C; --leise:#8A9098;
+  --wein:#7A1F2B; --wein2:#9B2C3A; --weinhell:#F6EAEC;
+  --amber:#9A5B00; --amberhell:#FFF4E2; --amberlinie:#E9C27E;
+  --gruen:#2D6A3E; --gruenhell:#EAF4EC; --rot:#A1262C; --rothell:#FBECEC;
+  --r:6px;
+  --lese:"Literata", Georgia, serif;
+  --ui:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--papier);color:var(--tinte);font:15px/1.45 var(--ui);-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+a{color:var(--wein)}
+:focus-visible{outline:2px solid var(--wein);outline-offset:2px}
+.huelle{container-type:inline-size;min-height:100vh;display:flex;flex-direction:column}
+
+/* Kopfleiste */
+.kopf{position:sticky;top:0;z-index:5;background:var(--flaeche);border-bottom:1px solid var(--linie);padding:10px 14px 10px;display:flex;gap:10px;align-items:flex-start}
+.kopf .laute{width:22px;height:22px;flex:0 0 22px;margin-top:2px;color:var(--wein)}
+.kopf .wer{flex:1;min-width:0}
+.kopf .wer b{display:block;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kopf .wer small{display:block;color:var(--grau);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kopf .knoepfe{display:flex;gap:4px}
+.ik{border:1px solid transparent;background:none;border-radius:var(--r);padding:4px 7px;cursor:pointer;color:var(--grau);font-size:13px}
+.ik:hover{border-color:var(--linie);color:var(--tinte)}
+
+/* Zustand: ein Satz, worauf es ankommt */
+.zustand{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px;border-bottom:1px solid var(--linie);background:var(--flaeche)}
+.marke{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:13px;border:1px solid var(--linie);background:var(--papier);color:var(--grau)}
+.marke::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.8}
+.marke.gut{color:var(--gruen);background:var(--gruenhell);border-color:#CBE3D1}
+.marke.acht{color:var(--amber);background:var(--amberhell);border-color:var(--amberlinie)}
+.marke.krit{color:var(--rot);background:var(--rothell);border-color:#EBC4C6}
+
+/* Raster: schmal eine Spalte, breit drei */
+.reiter{display:flex;gap:2px;padding:0 10px;background:var(--flaeche);border-bottom:1px solid var(--linie);position:sticky;top:var(--kopfh,58px);z-index:4}
+.reiter button{flex:1;border:0;background:none;padding:8px 4px;cursor:pointer;color:var(--grau);font-weight:500;border-bottom:2px solid transparent}
+.reiter button[aria-selected=true]{color:var(--wein);border-bottom-color:var(--wein)}
+.raster[data-reiter="1"] .spalte:not(.eins),.raster[data-reiter="2"] .spalte:not(.zwei),.raster[data-reiter="3"] .spalte:not(.drei){display:none}
+@container (min-width:760px){.reiter{display:none}.raster[data-reiter] .spalte{display:block !important}}
+.raster{flex:1;display:grid;grid-template-columns:minmax(0,1fr);gap:0;align-content:start}
+.spalte{padding:6px 14px 14px;min-width:0}
+@container (min-width:760px){
+  .raster{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0}
+  .spalte + .spalte{border-left:1px solid var(--linie)}
+  .spalte.drei{grid-column:1 / -1;border-left:0;border-top:1px solid var(--linie)}
+}
+@container (min-width:1180px){
+  .raster{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,.9fr)}
+  .spalte.drei{grid-column:auto;border-left:1px solid var(--linie);border-top:0}
+}
+
+/* Abschnitte */
+.ab{padding:14px 0 4px;border-bottom:1px solid var(--linie)}
+.ab:last-child{border-bottom:0}
+.ab > h2{font:600 13px/1.2 var(--ui);color:var(--grau);margin:0 0 8px;letter-spacing:.01em}
+.ab > h2 .zahl{color:var(--leise);font-weight:500;margin-left:4px}
+.lesen{font:400 16px/1.6 var(--lese);margin:0 0 10px;max-width:68ch}
+.lesen.gross{font-size:18px;line-height:1.55;border-left:3px solid var(--wein);padding-left:12px}
+.leise{color:var(--grau)}
+.klein{font-size:13px}
+.zeile{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.zeile + .zeile{margin-top:6px}
+.vor{white-space:pre-wrap}
+
+/* Knöpfe */
+.k{border:1px solid var(--linie2);background:var(--flaeche);border-radius:var(--r);padding:6px 12px;cursor:pointer;font-weight:500;line-height:1.25}
+.k:hover{border-color:var(--grau)}
+.k:disabled{opacity:.5;cursor:default}
+.k.haupt{background:var(--wein);border-color:var(--wein);color:#fff}
+.k.haupt:hover{background:var(--wein2)}
+.k.gut{border-color:#9CC7A8;color:var(--gruen)}
+.k.weg{color:var(--rot)}
+.k.klein{padding:3px 9px;font-size:13px}
+.k.gewaehlt{background:var(--gruenhell);border-color:var(--gruen);color:var(--gruen)}
+
+/* Entscheidung */
+.entscheid{background:var(--amberhell);border:1px solid var(--amberlinie);border-radius:var(--r);padding:12px 12px 10px;margin:12px 0 4px}
+.entscheid h2{margin:0 0 6px;font:600 15px/1.3 var(--ui);color:var(--amber)}
+.entscheid .frage + .frage{border-top:1px solid var(--amberlinie);margin-top:10px;padding-top:10px}
+.entscheid .optionen{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.entscheid .optionen .k{text-align:left;font-weight:400}
+.entscheid .optionen .k b{font-weight:600;margin-right:6px}
+.entscheid .empf{font-size:13px;color:var(--amber);margin-top:6px}
+
+/* Teile einer Mail */
+.teil{border-left:3px solid var(--linie2);padding:4px 0 10px 12px;margin:0 0 10px}
+.teil.braucht{border-left-color:var(--wein)}
+.teil.erledigt{border-left-color:var(--gruen);opacity:.85}
+.teil .titel{font-weight:600}
+.teil .art{font-size:12px;color:var(--grau);margin-left:6px}
+.teil .inhalt{margin:3px 0 6px}
+.teil blockquote{margin:4px 0 8px;padding:4px 10px;border-left:2px solid var(--linie);color:var(--grau);font:italic 14px/1.5 var(--lese)}
+.vorschlag{display:block;width:100%;text-align:left;border:1px solid var(--linie);background:var(--flaeche);border-radius:var(--r);padding:7px 10px;cursor:pointer;margin:0 0 6px}
+.vorschlag:hover{border-color:var(--grau)}
+.vorschlag b{display:block;font-size:13px;color:var(--wein)}
+.vorschlag span{display:block;font:15px/1.45 var(--lese)}
+.vorschlag.empfohlen b::after{content:" empfohlen";color:var(--gruen);font-weight:500}
+.vorschlag.gewaehlt{border-color:var(--gruen);background:var(--gruenhell)}
+
+/* Felder */
+textarea,input[type=text],input[type=date]{width:100%;border:1px solid var(--linie2);border-radius:var(--r);background:var(--flaeche);padding:7px 9px}
+textarea{min-height:76px;resize:vertical;line-height:1.45}
+label.feld{display:block;font-size:13px;color:var(--grau);margin:8px 0 4px}
+
+/* Listen */
+.liste{list-style:none;margin:0;padding:0}
+.liste li{padding:6px 0;border-top:1px solid var(--linie);display:flex;gap:8px;align-items:baseline}
+.liste li:first-child{border-top:0}
+.liste .t{flex:1;min-width:0}
+.liste .t small{display:block;color:var(--grau);font-size:13px}
+.liste .rechts{color:var(--grau);font-size:13px;white-space:nowrap}
+.fakten{display:grid;grid-template-columns:max-content 1fr;gap:3px 12px;margin:0 0 8px}
+.fakten dt{color:var(--grau);font-size:13px;padding-top:1px}
+.fakten dd{margin:0}
+
+/* Antworten der Analyse */
+.antwort{background:var(--flaeche);border:1px solid var(--linie);border-radius:var(--r);padding:10px 12px;margin:8px 0}
+.antwort .wofuer{font-size:13px;color:var(--grau);margin-bottom:4px}
+.antwort .lesen{margin:0;white-space:pre-wrap}
+.warte{display:inline-flex;align-items:center;gap:8px;color:var(--grau);font-size:14px}
+.warte::before{content:"";width:12px;height:12px;border:2px solid var(--linie2);border-top-color:var(--wein);border-radius:50%;animation:dreh 1s linear infinite}
+@keyframes dreh{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.warte::before{animation:none}}
+
+/* Befehlsleiste unten */
+.befehl{position:sticky;bottom:0;background:var(--flaeche);border-top:1px solid var(--linie);padding:10px 14px;z-index:5}
+.befehl form{display:flex;gap:8px;align-items:flex-end}
+.befehl textarea{min-height:40px;height:40px;max-height:200px}
+.befehl .hinweis{font-size:12px;color:var(--leise);margin-top:4px}
+
+.meldung{font-size:13px;margin-top:6px}
+.meldung.gut{color:var(--gruen)} .meldung.krit{color:var(--rot)}
+.leer{padding:30px 14px;color:var(--grau)}
+details.auf > summary{cursor:pointer;color:var(--grau);font-size:13px;list-style:none}
+details.auf > summary::-webkit-details-marker{display:none}
+details.auf > summary::before{content:"+ ";}
+details.auf[open] > summary::before{content:"− ";}
+.text-entwurf{font:14px/1.5 var(--lese);white-space:pre-wrap;background:var(--flaeche);border:1px solid var(--linie);border-radius:var(--r);padding:10px 12px;max-height:340px;overflow:auto}
+.anmeldung{max-width:440px;margin:40px auto;padding:0 18px}
+.anmeldung h1{font:600 22px/1.3 var(--lese);margin:0 0 8px}
+</style>
+</head>
+<body>
+<div class="huelle" id="app">
+  <div class="leer">Lädt.</div>
+</div>
+<script>
+"use strict";
+const API = "https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/outlook-assistent";
+const GROSS = new URLSearchParams(location.search).has("gross");
+const TEST = new URLSearchParams(location.search).get("test");
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fDatum = d => { if (!d) return ""; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString("de-AT", {day:"numeric", month:"numeric", year:"numeric", timeZone:"Europe/Vienna"}); };
+const fZeit = d => { if (!d) return ""; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleString("de-AT", {day:"numeric", month:"numeric", hour:"2-digit", minute:"2-digit", timeZone:"Europe/Vienna"}); };
+const ohneStrich = s => String(s || "").replace(/\s+[–—]\s+/g, ", ");
+
+let REITER = "1";
+let SCHLUESSEL = null, KTX = null, LAGE = null, DIALOG = null, LADEN_NR = 0;
+const offeneFragen = new Map(); // vertiefung id -> wofür
+
+/* ---------- Schlüssel ---------- */
+function schluesselLesen(){
+  try{ if (window.Office && Office.context && Office.context.roamingSettings){ const k = Office.context.roamingSettings.get("ksb_schluessel"); if (k) return k; } }catch(e){}
+  try{ return localStorage.getItem("ksb_schluessel"); }catch(e){ return null; }
+}
+function schluesselSchreiben(k){
+  try{ localStorage.setItem("ksb_schluessel", k); }catch(e){}
+  return new Promise(res => {
+    try{ if (window.Office && Office.context && Office.context.roamingSettings){ Office.context.roamingSettings.set("ksb_schluessel", k); Office.context.roamingSettings.saveAsync(() => res()); return; } }catch(e){}
+    res();
+  });
+}
+async function api(aufruf, args){
+  const r = await fetch(API, {method:"POST", headers:{"content-type":"application/json", "x-ksb-schluessel": SCHLUESSEL || ""}, body: JSON.stringify({aufruf, args: args || {}})});
+  const j = await r.json().catch(() => ({ok:false, fehler:"Antwort nicht lesbar."}));
+  if (j && j.code === "schluessel"){ SCHLUESSEL = null; zeigeAnmeldung("Der Schlüssel gilt nicht. Bitte neu eingeben."); throw new Error("Schlüssel"); }
+  return j;
+}
+function zeigeAnmeldung(hinweis){
+  $("app").innerHTML = '<div class="anmeldung"><h1>KSB Assistent</h1><p class="leise">Einmal deinen persönlichen Schlüssel eingeben. Outlook merkt ihn sich für alle deine Rechner.</p>' +
+    (hinweis ? '<p class="meldung krit">' + esc(hinweis) + "</p>" : "") +
+    '<form id="anm"><label class="feld" for="kf">Schlüssel</label><input type="text" id="kf" autocomplete="off" spellcheck="false"><div class="zeile" style="margin-top:10px"><button class="k haupt" type="submit">Anmelden</button></div><div class="meldung" id="anmMs"></div></form></div>';
+  $("anm").addEventListener("submit", async e => {
+    e.preventDefault(); const k = $("kf").value.trim(); if (!k) return;
+    SCHLUESSEL = k;
+    try{ const w = await api("wer"); if (w.ok){ await schluesselSchreiben(k); start(); } }catch(x){}
+  });
+}
+
+/* ---------- Was ist offen in Outlook ---------- */
+function restId(id){
+  try{ return Office.context.mailbox.convertToRestId(id, Office.MailboxEnums.RestVersion.v2_0); }catch(e){ return id; }
+}
+function kontextLesen(){
+  return new Promise(res => {
+    if (TEST){ const p = new URLSearchParams(location.search); return res({conv: p.get("conv"), imid: p.get("imid"), graph: p.get("graph"), betreff: p.get("betreff") || "", modus: p.get("modus") || "lesen", mail: ""}); }
+    const it = Office.context.mailbox.item; const mb = Office.context.mailbox.userProfile.emailAddress;
+    if (!it) return res(null);
+    const k = {mail: mb, conv: it.conversationId || null, modus: "lesen"};
+    if (typeof it.subject === "string"){ // Lesen (auch ein Entwurf in der Vorschau)
+      k.imid = it.internetMessageId || null; k.graph = it.itemId ? restId(it.itemId) : null; k.betreff = it.subject;
+      k.von = it.from && it.from.emailAddress; return res(k);
+    }
+    k.modus = "verfassen";
+    it.subject.getAsync(r1 => {
+      k.betreff = r1.value || "";
+      const weiter = () => it.getItemIdAsync(r2 => { if (r2.status === "succeeded" && r2.value) k.graph = restId(r2.value); res(k); });
+      if (typeof it.getItemIdAsync === "function") weiter(); else res(k);
+    });
+  });
+}
+
+/* ---------- Laden ---------- */
+async function laden(){
+  const nr = ++LADEN_NR;
+  if (!KTX){ $("app").innerHTML = '<div class="leer">Keine Mail ausgewählt.</div>'; return; }
+  if (!LAGE) $("app").innerHTML = '<div class="leer"><span class="warte">Ich lese, was wir dazu wissen.</span></div>';
+  try{
+    const l = await api("lage", {imid: KTX.imid, graph: KTX.graph, conv: KTX.conv});
+    if (nr !== LADEN_NR) return;
+    LAGE = l; zeichnen();
+    if (DIALOG) try{ DIALOG.messageChild(JSON.stringify({ktx: KTX, k: SCHLUESSEL})); }catch(e){}
+  }catch(x){ if (nr === LADEN_NR && String(x.message) !== "Schlüssel") $("app").innerHTML = '<div class="leer">Keine Verbindung zum Server. ' + esc(x.message || "") + ' <button class="k klein" onclick="laden()">Noch einmal</button></div>'; }
+}
+
+/* ---------- Zeichnen ---------- */
+function zustandMarken(L){
+  const m = [], e = L.entwurf, mi = L.mitte || {};
+  if (e){
+    if (e.gesendet) m.push(["gut", "Gesendet " + fZeit(e.gesendet)]);
+    if (e.technik_ok === false) m.push(["krit", "Technik prüfen"]);
+    if (e.hindernis) m.push(["krit", "Hält: " + kurzText(e.hindernis, 60)]);
+    if (e.marker_offen) m.push(["krit", "Marker nicht verarbeitet"]);
+    if (e.gedankenstrich) m.push(["acht", "Gedankenstrich im Text"]);
+    if (e.ampel === "GRUEN") m.push(["gut", "Lektüre: in Ordnung"]);
+    else if (e.ampel === "GELB") m.push(["acht", "Lektüre: Hinweise"]);
+    else if (e.ampel === "ROT") m.push(["krit", "Lektüre: Einwände"]);
+    else if (e.ampel === "NICHT_PRUEFREIF") m.push(["acht", "Noch nicht gelesen"]);
+    if (e.wv) m.push(["", "Wiedervorlage " + fDatum(e.wv)]);
+  }
+  if ((L.fragen || []).length) m.push(["acht", L.fragen.length === 1 ? "Eine Frage an dich" : L.fragen.length + " Fragen an dich"]);
+  const t = L.teile; if (t && t.noetig) m.push(["acht", t.noetig === 1 ? "Ein Punkt braucht Antwort" : t.noetig + " Punkte brauchen Antwort"]);
+  const vg = (mi.vorgaenge || [])[0]; if (vg && vg.ball) m.push(["", "Am Zug: " + ballText(vg.ball)]);
+  if (L.ki) m.push([L.ki.status === "FERTIG" ? "gut" : L.ki.status === "FEHLER" ? "krit" : "acht", L.ki.status === "FERTIG" ? "K.I. geprüft" : L.ki.status === "FEHLER" ? "K.I. Prüfung fehlgeschlagen" : "K.I. prüft"]);
+  const ol = (L.ol || [])[0]; if (ol) m.push([ol.wahl === "PASST" ? "gut" : "", wahlText(ol.wahl) + " " + fZeit(ol.am)]);
+  return m;
+}
+const kurzText = (s, n) => { s = typeof s === "string" ? s : JSON.stringify(s); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+const ballText = b => ({WIR: "wir", PARTNER: "der Partner", CHRISTIAN: "du", STEPHANIE: "Stephanie", DORIS: "Doris", GLEICHER_TAG: "unklar, beide am selben Tag"}[String(b).toUpperCase()] || String(b).toLowerCase().replace(/_/g, " "));
+const wahlText = w => ({PASST: "Von dir geprüft", AENDERN: "Änderung bestellt", VERWERFEN: "Verworfen", SPAETER: "Zurückgelegt", ERLEDIGT: "Erledigt", NOTIZ: "Notiz"}[w] || w);
+
+function zeichnen(){
+  const L = LAGE || {}, mi = L.mitte || {}, e = L.entwurf, a = L.ausgang;
+  const titel = e ? "Entwurf an " + (e.an || []).join(", ") : (mi.person && mi.person.name) || (mi.haus && mi.haus.name) || mi.partner || (KTX && KTX.von) || "Mail";
+  const unter = [!e && mi.person && mi.haus && mi.haus.name, e && mi.haus && mi.haus.name, e ? e.betreff : KTX && KTX.betreff].filter(Boolean).join(", ");
+  let h = '<header class="kopf"><svg class="laute" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 3c-1.7 3.2-2.6 6.6-2.6 9.4C4.4 17 7.6 21 12 21s7.6-4 7.6-8.6C19.6 9.6 18.7 6.2 17 3h-1.6c1.5 3 2.3 6.2 2.3 9.1 0 3.6-2.4 6.9-5.7 6.9s-5.7-3.3-5.7-6.9c0-2.9.8-6.1 2.3-9.1H7zm3 2v11h1.2V5H10zm2.8 0v11H14V5h-1.2z"/></svg>' +
+    '<div class="wer"><b>' + esc(titel) + "</b><small>" + esc(unter) + '</small></div><div class="knoepfe">' +
+    (GROSS ? "" : '<button class="ik" type="button" id="kGross" title="In einem eigenen Fenster öffnen, das du auf einen zweiten Bildschirm ziehen kannst">Groß</button>') +
+    '<button class="ik" type="button" id="kNeu" title="Neu laden">Neu</button></div></header>';
+  const marken = zustandMarken(L);
+  if (marken.length) h += '<div class="zustand">' + marken.map(([k, t]) => '<span class="marke ' + k + '">' + esc(t) + "</span>").join("") + "</div>";
+  const nF = (L.fragen || []).length + ((L.teile && L.teile.noetig) || 0);
+  h += '<nav class="reiter" role="tablist">' + [["1", e ? "Entwurf" : "Entscheiden", nF], ["2", "Wissen", 0], ["3", "Werkzeuge", offeneFragen.size]].map(([k, t, n]) => '<button type="button" role="tab" data-reiter="' + k + '" aria-selected="' + (REITER === k) + '">' + esc(t) + (n ? " (" + n + ")" : "") + "</button>").join("") + "</nav>";
+  h += '<main class="raster" data-reiter="' + REITER + '"><section class="spalte eins">' + spalteEins(L) + '</section><section class="spalte zwei">' + spalteZwei(L) + '</section><section class="spalte drei">' + spalteDrei(L) + "</section></main>";
+  h += '<footer class="befehl"><form id="befehlForm"><textarea id="befehlText" rows="1" placeholder="Sag, was geschehen soll. Zum Beispiel: Antwort, dass wir den Termin halten, Gage wie besprochen."></textarea><button class="k haupt" type="submit">Los</button></form><div class="hinweis">Geht als Auftrag an den Server. Ergebnis kommt als Entwurf. Gesendet wird nur von dir.</div><div class="meldung" id="befehlMs"></div></footer>';
+  $("app").innerHTML = h;
+  if ($("warumText") && a && a.id) warumHolen(a.id);
+  const kh = document.querySelector(".kopf"); if (kh) document.documentElement.style.setProperty("--kopfh", kh.offsetHeight + "px");
+  binden();
+}
+
+function spalteEins(L){
+  let h = "";
+  const mi = L.mitte || {}, e = L.entwurf, a = L.ausgang;
+  // Kurzfassung oben, als Lesetext
+  if (mi.kurz) h += '<div class="ab"><p class="lesen gross">' + esc(ohneStrich(mi.kurz)) + "</p>" + (mi.kurz_aktuell === false ? '<div class="zeile"><span class="klein leise">Seit der Kurzfassung kam noch eine Mail.</span><button class="k klein" type="button" data-tu="kurz">Neu fassen</button></div>' : "") + "</div>";
+  // K.I. Prüfung
+  if (L.ki){
+    const k = L.ki;
+    h += '<div class="ab"><h2>K.I. Prüfung</h2>' + (k.status === "FERTIG" && k.antwort ? '<p class="lesen vor">' + esc(ohneStrich(k.antwort)) + "</p>"
+      : k.status === "FEHLER" ? '<p class="meldung krit">' + esc(k.fehler || "Die Prüfung ist nicht gelungen.") + "</p>"
+      : '<p><span class="warte">Wird geprüft. Das dauert ein bis drei Minuten.</span></p>') + "</div>";
+    if (k.status !== "FERTIG" && k.status !== "FEHLER") setTimeout(() => { if (LAGE && LAGE.ki && LAGE.ki.status === k.status) laden(); }, 30000);
+  }
+  // Entscheidungen
+  if ((L.fragen || []).length){
+    h += '<div class="entscheid"><h2>Brauche deine Entscheidung</h2>' + L.fragen.map(f => {
+      const opts = Array.isArray(f.optionen) ? f.optionen : [];
+      return '<div class="frage" data-frage="' + f.id + '"><div class="lesen" style="margin:0">' + esc(ohneStrich(f.frage)) + "</div>" +
+        (f.kontext ? '<details class="auf"><summary>Hintergrund</summary><div class="klein vor">' + esc(ohneStrich(f.kontext)) + "</div></details>" : "") +
+        '<div class="optionen">' + opts.map((o, i) => { const kz = (o && o.kuerzel) || String.fromCharCode(65 + i); const t = typeof o === "object" ? (o.text || "") : o; return '<button class="k" type="button" data-wahl="' + esc(kz) + '"><b>' + esc(kz) + "</b>" + esc(ohneStrich(t)) + "</button>"; }).join("") + "</div>" +
+        (f.empfehlung ? '<div class="empf">Empfehlung: ' + esc(ohneStrich(typeof f.empfehlung === "string" ? f.empfehlung : JSON.stringify(f.empfehlung))) + "</div>" : "") +
+        '<div class="meldung"></div></div>';
+    }).join("") + "</div>";
+  }
+  // Entwurf
+  if (e){
+    h += '<div class="ab"><h2>Warum dieser Entwurf da ist</h2>';
+    const brauchtKi = a && (!a.warum || (a.warum_ergaenzt && !a.warum_ki_am));
+    if (a && !brauchtKi) h += '<p class="lesen">' + esc(ohneStrich(a.warum)) + "</p>";
+    else if (a) h += '<p class="lesen" id="warumText"><span class="warte">Ich lese nach, warum es ihn gibt.</span></p>';
+    else h += '<p class="lesen">Diesen Entwurf hat nicht der Server gebaut. Dazu ist nichts festgehalten.</p>';
+    if (a && a.auftrag) h += '<details class="auf"><summary>Interner Auftrag dahinter</summary><div class="klein vor">' + esc(ohneStrich(a.auftrag.anweisung || "")) + "</div></details>";
+    if (a && a.bezug) h += '<dl class="fakten"><dt>Antwort auf</dt><dd>' + esc(a.bezug.von) + ", " + fDatum(a.bezug.am) + "<br><span class=\"leise\">" + esc(a.bezug.betreff || "") + "</span></dd></dl>";
+    if (a && a.angelegt_von) h += '<dl class="fakten"><dt>Geschrieben von</dt><dd>' + esc(a.angelegt_von) + ", " + fZeit(a.angelegt_am) + "</dd></dl>";
+    if (a && a.annahme) h += '<details class="auf"><summary>Annahmen im Text</summary><div class="klein vor">' + esc(ohneStrich(typeof a.annahme === "string" ? a.annahme : JSON.stringify(a.annahme, null, 1))) + "</div></details>";
+    if (a && a.belege) h += '<details class="auf"><summary>Belege</summary><div class="klein vor">' + esc(typeof a.belege === "string" ? a.belege : JSON.stringify(a.belege, null, 1)) + "</div></details>";
+    h += "</div>";
+    const probleme = [];
+    (Array.isArray(e.technik) ? e.technik : []).forEach(t => probleme.push(["krit", t.befund || JSON.stringify(t)]));
+    (Array.isArray(e.befund) ? e.befund : []).forEach(t => probleme.push(["acht", typeof t === "string" ? t : (t.befund || t.text || JSON.stringify(t))]));
+    if (e.hindernis) probleme.push(["krit", typeof e.hindernis === "string" ? e.hindernis : JSON.stringify(e.hindernis)]);
+    if (e.freigabe_grund) probleme.push(["", e.freigabe_grund]);
+    if (e.letzter_eingang) probleme.push(["acht", "Seit dem Entwurf kam eine Mail von " + e.letzter_eingang.von + " (" + fZeit(e.letzter_eingang.am) + "). Prüfen, ob der Entwurf noch passt."]);
+    if (probleme.length) h += '<div class="ab"><h2>Was auffällt</h2><ul class="liste">' + probleme.map(([k, t]) => '<li><span class="marke ' + k + '" style="padding:0 6px"></span><span class="t">' + esc(ohneStrich(t)) + "</span></li>").join("") + "</ul></div>";
+    h += '<div class="ab"><h2>Deine Entscheidung zum Entwurf</h2><div class="zeile"><button class="k gut" type="button" data-hand="PASST">Passt</button><button class="k" type="button" data-auf="aendern">Ändern</button><button class="k" type="button" data-auf="spaeter">Später</button><button class="k weg" type="button" data-hand="VERWERFEN">Verwerfen</button></div>' +
+      '<div id="handAendern" hidden><label class="feld" for="aenTxt">Was soll anders sein?</label><textarea id="aenTxt" placeholder="Zum Beispiel: kürzer, per Du, den Termin 14. März nennen, keine Gage erwähnen."></textarea><div class="zeile" style="margin-top:6px"><button class="k haupt" type="button" data-hand="AENDERN">Neu schreiben lassen</button></div></div>' +
+      '<div id="handSpaeter" hidden><label class="feld" for="spDat">Wieder vorlegen am</label><input type="date" id="spDat"><label class="feld" for="spTxt">Warum (für später)</label><input type="text" id="spTxt"><div class="zeile" style="margin-top:6px"><button class="k haupt" type="button" data-hand="SPAETER">Zurücklegen</button></div></div>' +
+      '<div class="meldung" id="handMs"></div><p class="klein leise">Senden machst du selbst mit dem Senden-Knopf. Verwerfen merkt sich der Server, löschen kannst du ihn mit Entf.</p></div>';
+  }
+  // Teile der Mail
+  const t = L.teile;
+  if (!e && L.mail_id){
+    if (t && t.status === "FERTIG"){
+      h += '<div class="ab"><h2>Was die Mail will' + (t.teile && t.teile.length ? '<span class="zahl">' + t.teile.length + "</span>" : "") + "</h2>" + (t.kern ? '<p class="lesen">' + esc(ohneStrich(t.kern)) + "</p>" : "");
+      h += (t.teile || []).map(teilHtml).join("");
+      const entsch = (t.teile || []).filter(x => x.stand === "ENTSCHIEDEN").length;
+      h += '<div class="zeile"><button class="k haupt" type="button" data-tu="antwort"' + (entsch ? "" : " disabled") + ">" + (entsch ? "Antwort bauen aus " + (entsch === 1 ? "einem Punkt" : entsch + " Punkten") : "Erst Punkte entscheiden") + '</button><button class="k klein" type="button" data-tu="zerlegen_neu">Neu zerlegen</button></div><div class="meldung" id="antwMs"></div></div>';
+    } else {
+      h += '<div class="ab"><h2>Was die Mail will</h2><p class="leise">' + (t && t.status === "OFFEN" ? '<span class="warte">Wird gerade zerlegt.</span>' : "Noch nicht zerlegt.") + '</p><div class="zeile"><button class="k" type="button" data-tu="zerlegen">Jetzt zerlegen</button></div></div>';
+    }
+  }
+  if (!e && !L.mail_id && !mi.kurz) h += '<div class="ab"><p class="leise">Diese Mail kennt der Server noch nicht. Sie wird in den nächsten Minuten abgeholt.</p></div>';
+  // Verlauf der Seitenleiste
+  if ((L.ol || []).length) h += '<div class="ab"><h2>Schon entschieden</h2><ul class="liste">' + L.ol.map(o => '<li><span class="t">' + esc(wahlText(o.wahl)) + (o.text ? "<small>" + esc(o.text) + "</small>" : "") + '</span><span class="rechts">' + esc(o.von.toLowerCase()) + ", " + fZeit(o.am) + "</span></li>").join("") + "</ul></div>";
+  return h;
+}
+
+function teilHtml(x){
+  const st = x.stand || "OFFEN", fertig = st !== "OFFEN";
+  const vs = (x.vorschlaege || []);
+  return '<div class="teil' + (x.braucht_antwort ? " braucht" : "") + (fertig ? " erledigt" : "") + '" data-nr="' + x.nr + '"><div><span class="titel">' + esc(ohneStrich(x.titel)) + '</span><span class="art">' + esc(artText(x.art)) + (fertig ? ", " + esc(standText(st)) : "") + "</span></div>" +
+    '<div class="inhalt">' + esc(ohneStrich(x.inhalt)) + "</div>" + (x.zitat ? "<blockquote>" + esc(x.zitat) + "</blockquote>" : "") +
+    vs.map((v, i) => '<button type="button" class="vorschlag' + (x.empfehlung === i ? " empfohlen" : "") + (fertig && x.wahl === v.kurz ? " gewaehlt" : "") + '" data-vs="' + i + '"><b>' + esc(ohneStrich(v.kurz)) + "</b><span>" + esc(ohneStrich(v.antwort)) + "</span></button>").join("") +
+    (x.warum ? '<div class="klein leise">' + esc(ohneStrich(x.warum)) + "</div>" : "") +
+    '<details class="auf" style="margin-top:4px"><summary>Eigene Antwort</summary><textarea class="eigen" placeholder="Was soll dazu in der Antwort stehen?">' + esc(st === "ENTSCHIEDEN" && x.antwort && !vs.some(v => v.kurz === x.wahl) ? x.antwort : "") + '</textarea><div class="zeile" style="margin-top:6px"><button class="k klein" type="button" data-teil="eigen">Übernehmen</button></div></details>' +
+    '<div class="zeile" style="margin-top:6px">' + (st !== "KENNTNIS" ? '<button class="k klein" type="button" data-teil="KENNTNIS">Zur Kenntnis</button>' : "") + (st !== "SPAETER" ? '<button class="k klein" type="button" data-teil="SPAETER">Später</button>' : "") + (fertig ? '<button class="k klein" type="button" data-teil="OFFEN">Wieder offen</button>' : "") + "</div></div>";
+}
+const artText = a => ({FRAGE: "Frage", BITTE: "Bitte", ENTSCHEIDUNG: "Entscheidung", INFO: "Information", AUFGABE: "Aufgabe"}[a] || a || "");
+const standText = s => ({ENTSCHIEDEN: "entschieden", KENNTNIS: "zur Kenntnis", SPAETER: "später"}[s] || s);
+
+function spalteZwei(L){
+  const mi = L.mitte || {}; let h = "";
+  const vgs = mi.vorgaenge || [];
+  if (mi.plan || vgs.length){
+    h += '<div class="ab"><h2>Vorgang</h2>';
+    if (vgs.length) h += '<ul class="liste">' + vgs.slice(0, 6).map((v, i) => '<li><span class="t"><b>' + esc(v.kuenstler || "Ohne Künstler") + "</b><small>" + esc([v.phase && v.phase.toLowerCase().replace(/_/g, " "), v.zust && "bei " + v.zust, v.termin && "Termin " + fDatum(v.termin)].filter(Boolean).join(", ")) + '</small></span><span class="rechts">' + (v.ball ? "am Zug: " + esc(ballText(v.ball)) : "") + "</span></li>").join("") + "</ul>";
+    const p = mi.plan;
+    if (p){
+      if (p.schritt) h += '<dl class="fakten"><dt>Nächster Schritt</dt><dd>' + esc(ohneStrich(p.schritt)) + (p.faellig ? ' <span class="leise">bis ' + fDatum(p.faellig) + "</span>" : "") + "</dd></dl>";
+      if (p.grund) h += '<p class="klein leise">' + esc(ohneStrich(p.grund)) + "</p>";
+      if (p.stand) h += '<dl class="fakten"><dt>Stand</dt><dd>' + esc(ohneStrich(p.stand)) + "</dd></dl>";
+      if (p.zusagen) h += '<dl class="fakten"><dt>Wir haben zugesagt</dt><dd>' + esc(ohneStrich(p.zusagen)) + "</dd></dl>";
+      if (p.nicht) h += '<dl class="fakten"><dt>Nicht schreiben</dt><dd>' + esc(ohneStrich(p.nicht)) + "</dd></dl>";
+    }
+    h += "</div>";
+  }
+  if (mi.person || mi.partner){
+    const p = mi.person || {}; const v = mi.verlauf || {};
+    h += '<div class="ab"><h2>Person</h2><dl class="fakten">' +
+      (p.name ? "<dt>Name</dt><dd>" + esc(p.name) + "</dd>" : "") + (mi.partner ? "<dt>Adresse</dt><dd>" + esc(mi.partner) + "</dd>" : "") +
+      (p.form ? "<dt>Anrede</dt><dd>" + (String(p.form).toUpperCase() === "DU" ? "per Du" : "per Sie") + "</dd>" : "") + (p.sprache ? "<dt>Sprache</dt><dd>" + esc(p.sprache) + "</dd>" : "") +
+      (p.telefon ? '<dt>Telefon</dt><dd><a href="tel:' + esc(p.telefon) + '">' + esc(p.telefon) + "</a></dd>" : "") +
+      (v.mails ? "<dt>Verkehr</dt><dd>" + v.mails + " Mails in " + v.faeden + (v.faeden === 1 ? " Faden" : " Fäden") + ", seit " + esc(v.erste) + (v.letzte_aus ? ", zuletzt von uns " + esc(v.letzte_aus) : ", von uns noch nie geschrieben") + "</dd>" : "") +
+      "</dl>" + (p.notiz ? '<p class="klein vor">' + esc(ohneStrich(p.notiz)) + "</p>" : "") + "</div>";
+  }
+  if (mi.haus){
+    const o = mi.haus;
+    h += '<div class="ab"><h2>Haus</h2><dl class="fakten"><dt>Name</dt><dd>' + esc(o.name) + "</dd>" + (o.ort || o.land ? "<dt>Ort</dt><dd>" + esc([o.ort, o.land].filter(Boolean).join(", ")) + "</dd>" : "") +
+      (o.website ? '<dt>Website</dt><dd><a href="' + esc(/^https?:/.test(o.website) ? o.website : "https://" + o.website) + '" target="_blank" rel="noopener">' + esc(o.website.replace(/^https?:\/\//, "")) + "</a></dd>" : "") + "</dl>" +
+      (o.notiz ? '<p class="klein vor">' + esc(ohneStrich(o.notiz)) + "</p>" : "") + "</div>";
+  }
+  if ((mi.entscheidungen || []).length) h += '<div class="ab"><h2>Festgehaltene Entscheidungen</h2><ul class="liste">' + mi.entscheidungen.map(d => '<li><span class="t">' + esc(ohneStrich(d.aussage)) + '</span><span class="rechts">' + esc(fDatum(d.am)) + "</span></li>").join("") + "</ul></div>";
+  if ((mi.wiedervorlagen || []).length) h += '<div class="ab"><h2>Wiedervorlagen</h2><ul class="liste">' + mi.wiedervorlagen.map(w => '<li><span class="t">' + esc(ohneStrich(w.grund || "")) + '</span><span class="rechts">' + esc(fDatum(w.faellig)) + "</span></li>").join("") + "</ul></div>";
+  if ((mi.auftraege || []).length) h += '<div class="ab"><h2>Aufträge zu diesem Faden</h2><ul class="liste">' + mi.auftraege.slice(0, 8).map(u => '<li><span class="t">' + esc(ohneStrich(u.text || "")) + (u.ergebnis ? "<small>" + esc(ohneStrich(u.ergebnis)) + "</small>" : "") + (u.frage ? '<small style="color:var(--amber)">Rückfrage: ' + esc(ohneStrich(u.frage)) + "</small>" : "") + '</span><span class="rechts">' + esc(statusText(u.status)) + "<br>" + esc(u.am || "") + "</span></li>").join("") + "</ul></div>";
+  if ((L.entwuerfe_im_faden || []).filter(x => !x.selbst).length) h += '<div class="ab"><h2>Weitere Entwürfe in diesem Faden</h2><ul class="liste">' + L.entwuerfe_im_faden.filter(x => !x.selbst).map(x => '<li><span class="t">' + esc(x.betreff) + "<small>an " + esc((x.an || []).join(", ")) + '</small></span><span class="rechts">' + esc(fZeit(x.geaendert)) + "</span></li>").join("") + "</ul></div>";
+  if (L.entwurf && L.ausgang){ /* Text des Entwurfs zum Nachlesen im großen Fenster */ }
+  return h || '<div class="ab"><p class="leise">Zu Person, Haus und Vorgang ist noch nichts bekannt.</p></div>';
+}
+const statusText = s => ({OFFEN: "offen", IN_ARBEIT: "in Arbeit", ERLEDIGT: "erledigt", TEILWEISE: "teilweise", FEHLGESCHLAGEN: "fehlgeschlagen", ZURUECKGESTELLT: "zurückgestellt"}[s] || String(s || "").toLowerCase());
+
+const WERKZEUGE = [
+  ["2", "", "Genauer erklären", "Vorgeschichte, Zahlen, Termine, was offen ist"],
+  ["3", "", "Nachforschen", "Sucht in allen Mails, Rechnungen und Zahlungen"],
+  ["3", "Prüfe diesen Vorgang rechtlich: Welche Zusagen, Verträge, Fristen, Haftungen, Rechte oder Pflichten gibt es? Wo sind wir verwundbar, was muss schriftlich festgehalten werden, was sollten wir nicht schreiben? Nenne die Mails, auf die du dich stützt.", "Rechtlich prüfen", "Zusagen, Verträge, Fristen, Risiken"],
+  ["3", "Was würdest du an meiner Stelle als Nächstes tun, und warum? Denk an Beziehung, Geld, Termine und was wir zugesagt haben. Höchstens drei Schritte.", "Was würdest du tun?", "Empfehlung mit Begründung"],
+  ["3", "Welche weiteren Geschäftschancen stecken in diesem Kontakt? Andere Künstler oder Ensembles von uns, die hier passen könnten, frühere Projekte, die man wieder aufnehmen könnte. Begründe jede mit dem, was du in den Mails findest.", "Chancen", "Andere Künstler, Wiederaufnahme"]
+];
+const FOLGE = [
+  ["Vertrag vorbereiten", "Bereite zu diesem Vorgang einen Vertragsentwurf vor (Vorlage des Hauses, Parteien, Termin, Programm, Honorar, Reise, Rider, wie wir es bisher gemacht haben). Lege ihn als Dokument ab und sag mir, was fehlt. Nichts senden."],
+  ["Angebot vorbereiten", "Bereite zu diesem Vorgang ein Angebot vor (Programm, Besetzung, Termine, Honorar nur wenn belegt, sonst als offene Stelle). Als Entwurf an mich, nichts an den Partner senden."],
+  ["Kurz an Stephanie", "Schreib Stephanie kurz und persönlich, was sie hier übernehmen soll. Nur als Entwurf."],
+  ["Im Kalender vormerken", "Merke die in diesem Faden genannten Termine als Option vor und sag mir, welche es sind. Nichts bestätigen."]
+];
+function spalteDrei(L){
+  const mi = L.mitte || {}; let h = '<div class="ab"><h2>Fragen an Claude</h2><div class="zeile">' +
+    WERKZEUGE.map((w, i) => '<button class="k klein" type="button" data-wz="' + i + '" title="' + esc(w[3]) + '">' + esc(w[2]) + "</button>").join("") + "</div>" +
+    '<label class="feld" for="frTxt">Eigene Frage</label><textarea id="frTxt" placeholder="Zum Beispiel: Haben die je pünktlich gezahlt? Was haben wir 2023 angeboten?"></textarea><div class="zeile" style="margin-top:6px"><button class="k" type="button" data-tu="frage">Fragen</button></div><div id="antworten">';
+  [...offeneFragen.entries()].forEach(([id, w]) => { h += '<div class="antwort" id="vt-' + id + '"><div class="wofuer">' + esc(w) + '</div><span class="warte">Claude liest nach. Das dauert eine bis zwei Minuten.</span></div>'; });
+  (mi.vertiefungen || []).slice().reverse().forEach(v => { if (!offeneFragen.has(v.id)) h += '<div class="antwort"><div class="wofuer">' + esc(v.frage ? kurzText(v.frage, 90) : v.stufe === 2 ? "Genauer erklärt" : "Nachgeforscht") + (v.alt ? ", vor der letzten Mail" : "") + '</div><p class="lesen">' + esc(ohneStrich(v.antwort || "")) + "</p></div>"; });
+  h += "</div></div>";
+  h += '<div class="ab"><h2>Folgeaktionen</h2><div class="zeile">' + FOLGE.map((f, i) => '<button class="k klein" type="button" data-folge="' + i + '">' + esc(f[0]) + "</button>").join("") + '</div><div class="meldung" id="folgeMs"></div></div>';
+  const an = L.anhaenge || [], dk = L.dokumente || [], re = L.rechnungen || [];
+  if (an.length) h += '<div class="ab"><h2>Anhänge im Faden<span class="zahl">' + an.length + '</span></h2><ul class="liste">' + an.map(x => '<li><span class="t">' + (x.gelesen ? '<a href="#" data-anh="' + x.id + '">' + esc(x.name) + "</a>" : esc(x.name)) + "<small>" + esc(x.von || "") + ", " + fDatum(x.am) + '</small></span><span class="rechts">' + groesse(x.groesse) + '</span></li><li hidden id="anh-' + x.id + '"><div class="text-entwurf" style="width:100%"></div></li>').join("") + "</ul></div>";
+  if (dk.length) h += '<div class="ab"><h2>Dokumente zu Haus und Vorgang<span class="zahl">' + dk.length + '</span></h2><ul class="liste">' + dk.map(d => '<li><span class="t">' + (d.link ? '<a href="' + esc(d.link) + '" target="_blank" rel="noopener">' + esc(d.name) + "</a>" : esc(d.name)) + "<small>" + esc([d.kategorie, d.kurz].filter(Boolean).join(", ")) + '</small></span><span class="rechts">' + esc(fDatum(d.datum)) + "</span></li>").join("") + "</ul></div>";
+  if (re.length) h += '<div class="ab"><h2>Rechnungen an dieses Haus</h2><ul class="liste">' + re.map(r => '<li><span class="t">' + esc(r.firma + " " + (r.nummer || "")) + "<small>" + esc([r.wofuer, r.bezahlt ? "bezahlt " + fDatum(r.bezahlt) : r.status && r.status.toLowerCase()].filter(Boolean).join(", ")) + '</small></span><span class="rechts">' + esc(geld(r.brutto, r.waehrung)) + "<br>" + esc(fDatum(r.am)) + "</span></li>").join("") + "</ul></div>";
+  return h;
+}
+const groesse = b => { b = Number(b || 0); return b > 1e6 ? (b / 1e6).toLocaleString("de-AT", {maximumFractionDigits: 1}) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB"; };
+const geld = (v, w) => v == null ? "" : Number(v).toLocaleString("de-AT", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " " + (w || "EUR");
+
+/* ---------- Handeln ---------- */
+function ms(id, text, art){ const m = $(id); if (m){ m.className = "meldung " + (art || ""); m.textContent = text; } }
+function binden(){
+  const g = $("kGross"); if (g) g.onclick = grossOeffnen;
+  $("kNeu").onclick = () => { LAGE = null; laden(); };
+  $("befehlForm").addEventListener("submit", async e => { e.preventDefault(); const t = $("befehlText").value.trim(); if (!t) return; await befehl(t, "befehlMs", () => { $("befehlText").value = ""; }); });
+  $("befehlText").addEventListener("input", e => { e.target.style.height = "40px"; e.target.style.height = Math.min(200, e.target.scrollHeight) + "px"; });
+}
+async function befehl(text, msId, danach){
+  ms(msId, "Wird übergeben.");
+  try{
+    const r = await api("befehl", {mail_id: (LAGE && LAGE.mail_id) || (LAGE && LAGE.ausgang && LAGE.ausgang.bezug && LAGE.ausgang.bezug.id) || null, text, org: LAGE && LAGE.mitte && LAGE.mitte.haus && LAGE.mitte.haus.id});
+    if (r.ok){ ms(msId, r.doppelt ? "Liegt schon beim Server." : "Liegt beim Server. Das Ergebnis siehst du hier unter Aufträge und als Entwurf.", "gut"); if (danach) danach(); setTimeout(laden, 4000); }
+    else ms(msId, r.fehler || "Nicht übergeben.", "krit");
+  }catch(x){ ms(msId, "Nicht übergeben. " + (x.message || ""), "krit"); }
+}
+async function klick(e){
+  const b = e.target.closest("button, a[data-anh]"); if (!b) return;
+  const L = LAGE || {};
+  if (b.dataset.reiter){ REITER = b.dataset.reiter; document.querySelector(".raster").dataset.reiter = REITER; document.querySelectorAll(".reiter button").forEach(x => x.setAttribute("aria-selected", x === b)); window.scrollTo(0, 0); return; }
+  if (b.dataset.auf){ ["handAendern", "handSpaeter"].forEach(id => { const x = $(id); if (x) x.hidden = !(id === "hand" + (b.dataset.auf === "aendern" ? "Aendern" : "Spaeter") && x.hidden); }); return; }
+  if (b.dataset.hand){
+    const w = b.dataset.hand; const args = {graph: KTX.graph, imid: KTX.imid || (L.entwurf && null), conv: L.conv, wahl: w};
+    if (w === "AENDERN"){ args.text = ($("aenTxt").value || "").trim(); if (!args.text){ ms("handMs", "Bitte schreib, was anders sein soll.", "krit"); return; } }
+    if (w === "SPAETER"){ args.datum = $("spDat").value; args.text = $("spTxt").value; if (!args.datum){ ms("handMs", "Bitte ein Datum wählen.", "krit"); return; } }
+    b.disabled = true; ms("handMs", "Einen Moment.");
+    try{
+      const r = await api("handeln", args);
+      if (r.ok){
+        ms("handMs", w === "AENDERN" ? "Wird neu geschrieben. Der neue Entwurf ersetzt diesen in ein paar Minuten." : w === "PASST" ? "Festgehalten. Senden kannst du jetzt." : w === "VERWERFEN" ? "Festgehalten. Mit Entf ist er weg." : "Zurückgelegt bis " + fDatum(args.datum) + ".", "gut");
+        if (w === "PASST") kategorieSetzen("KSB geprüft");
+        setTimeout(laden, 1500);
+      } else { ms("handMs", r.fehler || "Nicht gespeichert.", "krit"); b.disabled = false; }
+    }catch(x){ ms("handMs", "Nicht gespeichert.", "krit"); b.disabled = false; }
+    return;
+  }
+  if (b.dataset.wahl){
+    const box = b.closest("[data-frage]"), m = box.querySelector(".meldung");
+    box.querySelectorAll("button").forEach(x => x.disabled = true); m.className = "meldung"; m.textContent = "Wird übernommen.";
+    try{ const r = await api("frage_setzen", {frage: Number(box.dataset.frage), wahl: b.dataset.wahl}); if (r.ok){ m.className = "meldung gut"; m.textContent = "Entschieden: " + b.textContent; setTimeout(laden, 2500); } else { m.className = "meldung krit"; m.textContent = r.fehler || "Nicht übernommen."; box.querySelectorAll("button").forEach(x => x.disabled = false); } }
+    catch(x){ m.className = "meldung krit"; m.textContent = "Nicht übernommen."; box.querySelectorAll("button").forEach(x => x.disabled = false); }
+    return;
+  }
+  const teil = b.closest("[data-nr]");
+  if (teil && (b.dataset.vs != null || b.dataset.teil)){
+    const nr = Number(teil.dataset.nr), x = (L.teile.teile || []).find(y => y.nr === nr); let args;
+    if (b.dataset.vs != null){ const v = x.vorschlaege[Number(b.dataset.vs)]; args = {mail_id: L.mail_id, nr, status: "ENTSCHIEDEN", wahl: v.kurz, antwort: v.antwort}; }
+    else if (b.dataset.teil === "eigen"){ const t = teil.querySelector(".eigen").value.trim(); if (!t) return; args = {mail_id: L.mail_id, nr, status: "ENTSCHIEDEN", wahl: "Eigene Antwort", antwort: t}; }
+    else args = {mail_id: L.mail_id, nr, status: b.dataset.teil};
+    b.disabled = true;
+    try{ const r = await api("teil_setzen", args); if (r.ok){ x.stand = args.status; x.wahl = args.wahl; x.antwort = args.antwort; zeichnen(); } else b.disabled = false; }catch(e2){ b.disabled = false; }
+    return;
+  }
+  const tu = b.dataset.tu;
+  if (tu === "antwort"){ b.disabled = true; ms("antwMs", "Wird übergeben."); try{ const r = await api("antwort_bauen", {mail_id: L.mail_id}); ms("antwMs", r.ok ? "Der Server baut die Antwort. Sie kommt als Entwurf in ein paar Minuten." : (r.fehler || "Nicht übergeben."), r.ok ? "gut" : "krit"); }catch(x){ ms("antwMs", "Nicht übergeben.", "krit"); b.disabled = false; } return; }
+  if (tu === "zerlegen" || tu === "zerlegen_neu"){ b.disabled = true; try{ await api("zerlegen", {mail_id: L.mail_id, neu: tu === "zerlegen_neu"}); }catch(x){} setTimeout(laden, 30000); b.textContent = "Wird zerlegt, etwa eine halbe Minute."; return; }
+  if (tu === "kurz"){ b.disabled = true; try{ await api("kurz", {conv: L.conv}); }catch(x){} setTimeout(laden, 20000); b.textContent = "Wird neu gefasst."; return; }
+  if (tu === "frage"){ const t = ($("frTxt").value || "").trim(); if (!t) return; fragen(3, t, t); $("frTxt").value = ""; return; }
+  if (b.dataset.wz != null){ const w = WERKZEUGE[Number(b.dataset.wz)]; fragen(Number(w[0]), w[1] || null, w[2]); return; }
+  if (b.dataset.folge != null){ const f = FOLGE[Number(b.dataset.folge)]; befehl(f[1], "folgeMs"); return; }
+  if (b.dataset.anh){ e.preventDefault(); const li = $("anh-" + b.dataset.anh); if (!li.hidden){ li.hidden = true; return; } li.hidden = false; li.firstChild.textContent = "Lädt."; try{ const r = await api("anhang", {id: Number(b.dataset.anh)}); li.firstChild.textContent = r.ok ? (r.text || "Kein Text ausgelesen.") : (r.fehler || ""); }catch(x){ li.firstChild.textContent = "Nicht geladen."; } return; }
+}
+async function warumHolen(id){
+  try{ const r = await api("warum", {ausgang_id: id}); const el = $("warumText"); if (!el) return;
+    if (r.ok){ el.textContent = ohneStrich(r.warum); if (LAGE && LAGE.ausgang && LAGE.ausgang.id === id){ LAGE.ausgang.warum = r.warum; LAGE.ausgang.warum_ki_am = new Date().toISOString(); } }
+    else el.textContent = r.fehler || "Das konnte ich gerade nicht nachlesen.";
+  }catch(x){}
+}
+async function fragen(stufe, frage, wofuer){
+  const L = LAGE || {};
+  try{
+    const r = await api("vertiefen", {conv: L.conv, mail_id: L.mail_id || (L.ausgang && L.ausgang.bezug && L.ausgang.bezug.id) || null, stufe, frage});
+    if (!r.ok){ alertLeise(r.fehler || "Geht gerade nicht."); return; }
+    if (r.status === "FERTIG" && r.antwort){ LAGE = null; laden(); return; }
+    offeneFragen.set(r.id, wofuer); zeichnen(); warteAuf(r.id);
+  }catch(x){ alertLeise("Geht gerade nicht."); }
+}
+function alertLeise(t){ const a = $("antworten"); if (a) a.insertAdjacentHTML("afterbegin", '<div class="meldung krit">' + esc(t) + "</div>"); }
+async function warteAuf(id){
+  for (let i = 0; i < 60; i++){
+    await new Promise(r => setTimeout(r, 5000));
+    try{
+      const r = await api("vertiefung", {id});
+      const st = r && (r.status || (r.vertiefung && r.vertiefung.status));
+      if (st === "FERTIG" || st === "FEHLER"){
+        const box = $("vt-" + id), ant = r.antwort || (r.vertiefung && r.vertiefung.antwort) || "";
+        offeneFragen.delete(id);
+        if (box) box.innerHTML = '<div class="wofuer">' + esc(box.querySelector(".wofuer").textContent) + '</div><p class="lesen">' + esc(ohneStrich(ant)) + "</p>";
+        return;
+      }
+    }catch(x){}
+  }
+}
+function kategorieSetzen(name){
+  try{
+    const mb = Office.context.mailbox, it = mb.item; if (!it || !it.categories) return;
+    const setzen = () => it.categories.addAsync([name], () => {});
+    if (mb.masterCategories) mb.masterCategories.getAsync(r => { const da = r.status === "succeeded" && (r.value || []).some(c => c.displayName === name); if (da) setzen(); else mb.masterCategories.addAsync([{displayName: name, color: Office.MailboxEnums.CategoryColor.Preset4}], () => setzen()); });
+    else setzen();
+  }catch(e){}
+}
+
+/* ---------- Großes Fenster ---------- */
+function grossOeffnen(){
+  const url = location.origin + location.pathname + "?gross=1";
+  try{
+    Office.context.ui.displayDialogAsync(url, {height: 90, width: 85, displayInIframe: false}, r => {
+      if (r.status !== "succeeded") return;
+      DIALOG = r.value;
+      DIALOG.addEventHandler(Office.EventType.DialogMessageReceived, () => { try{ DIALOG.messageChild(JSON.stringify({ktx: KTX, k: SCHLUESSEL})); }catch(e){} });
+      DIALOG.addEventHandler(Office.EventType.DialogEventReceived, () => { DIALOG = null; });
+    });
+  }catch(e){ window.open(url, "_blank"); }
+}
+
+/* ---------- Start ---------- */
+async function start(){
+  SCHLUESSEL = SCHLUESSEL || schluesselLesen();
+  if (GROSS && !TEST){ // im großen Fenster kommt alles vom Seitenfenster
+    $("app").innerHTML = '<div class="leer"><span class="warte">Verbinde mit Outlook.</span></div>';
+    try{
+      Office.context.ui.addHandlerAsync(Office.EventType.DialogParentMessageReceived, ev => { try{ const d = JSON.parse(ev.message); SCHLUESSEL = d.k; KTX = d.ktx; LAGE = null; laden(); }catch(e){} });
+      Office.context.ui.messageParent("bereit");
+    }catch(e){ $("app").innerHTML = '<div class="leer">Das große Fenster geht nur aus Outlook heraus.</div>'; }
+    return;
+  }
+  if (!SCHLUESSEL){ zeigeAnmeldung(); return; }
+  KTX = await kontextLesen(); LAGE = null; laden();
+  try{ Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, async () => { KTX = await kontextLesen(); LAGE = null; REITER = "1"; offeneFragen.clear(); laden(); }); }catch(e){}
+}
+$("app").addEventListener("click", klick);
+if (window.Office && !TEST) Office.onReady(() => start()); else start();
+</script>
+</body>
+</html>
