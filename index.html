@@ -246,7 +246,10 @@ function zustandMarken(L){
     if (e.hindernis) m.push(["krit", "Hält: " + kurzText(e.hindernis, 60)]);
     if (e.marker_offen) m.push(["krit", "Marker nicht verarbeitet"]);
     if (e.gedankenstrich) m.push(["acht", "Gedankenstrich im Text"]);
-    if (e.ampel === "GRUEN") m.push(["gut", "Lektüre: in Ordnung"]);
+    if (L.lektuere && L.lektuere.aktion === "WARTET_BEDINGUNG") m.push(["acht", "Wartet: " + kurzText(L.lektuere.bedingung || L.lektuere.grund || "Bedingung", 50)]);
+    if (L.lektuere && L.lektuere.aktion === "FRAGE") m.push(["acht", "Frage an dich"]);
+    const lkOffen = L.lektuere && !["READY", "OK", "ERLEDIGT_SELBST"].includes(L.lektuere.aktion);
+    if (lkOffen) {} else if (e.ampel === "GRUEN") m.push(["gut", "Lektüre: in Ordnung"]);
     else if (e.ampel === "GELB") m.push(["acht", "Lektüre: Hinweise"]);
     else if (e.ampel === "ROT") m.push(["krit", "Lektüre: Einwände"]);
     else if (e.ampel === "NICHT_PRUEFREIF") m.push(["acht", "Noch nicht gelesen"]);
@@ -320,6 +323,14 @@ function spalteEins(L){
     if (a && a.annahme) h += '<details class="auf"><summary>Annahmen im Text</summary><div class="klein vor">' + esc(ohneStrich(typeof a.annahme === "string" ? a.annahme : JSON.stringify(a.annahme, null, 1))) + "</div></details>";
     if (a && a.belege) h += '<details class="auf"><summary>Belege</summary><div class="klein vor">' + esc(typeof a.belege === "string" ? a.belege : JSON.stringify(a.belege, null, 1)) + "</div></details>";
     h += "</div>";
+    if (L.lektuere){
+      const lk = L.lektuere;
+      h += '<div class="ab"><h2>Was die Prüfung sagt</h2><dl class="fakten"><dt>Stand</dt><dd>' + esc(lekText(lk.aktion)) + ' <span class="leise">' + esc(fZeit(lk.am)) + "</span></dd>" +
+        (lk.bedingung ? "<dt>Wartet auf</dt><dd>" + esc(ohneStrich(lk.bedingung)) + "</dd>" : "") +
+        (lk.grund && lk.grund !== lk.bedingung ? "<dt>Grund</dt><dd>" + esc(ohneStrich(lk.grund)) + "</dd>" : "") +
+        (lk.frage ? "<dt>Frage</dt><dd>" + esc(ohneStrich(lk.frage)) + "</dd>" : "") + "</dl>" +
+        (Array.isArray(lk.befunde) && lk.befunde.length ? '<ul class="liste">' + lk.befunde.map(b => '<li><span class="t">' + esc(ohneStrich(b.stelle || "")) + (b.richtig ? "<small>Besser: " + esc(ohneStrich(b.richtig)) + "</small>" : "") + "</span></li>").join("") + "</ul>" : "") + "</div>";
+    }
     const probleme = [];
     (Array.isArray(e.technik) ? e.technik : []).forEach(t => probleme.push(["krit", t.befund || JSON.stringify(t)]));
     (Array.isArray(e.befund) ? e.befund : []).forEach(t => probleme.push(["acht", typeof t === "string" ? t : (t.befund || t.text || JSON.stringify(t))]));
@@ -360,6 +371,7 @@ function teilHtml(x){
     '<details class="auf" style="margin-top:4px"><summary>Eigene Antwort</summary><textarea class="eigen" placeholder="Was soll dazu in der Antwort stehen?">' + esc(st === "ENTSCHIEDEN" && x.antwort && !vs.some(v => v.kurz === x.wahl) ? x.antwort : "") + '</textarea><div class="zeile" style="margin-top:6px"><button class="k klein" type="button" data-teil="eigen">Übernehmen</button></div></details>' +
     '<div class="zeile" style="margin-top:6px">' + (st !== "KENNTNIS" ? '<button class="k klein" type="button" data-teil="KENNTNIS">Zur Kenntnis</button>' : "") + (st !== "SPAETER" ? '<button class="k klein" type="button" data-teil="SPAETER">Später</button>' : "") + (fertig ? '<button class="k klein" type="button" data-teil="OFFEN">Wieder offen</button>' : "") + "</div></div>";
 }
+const lekText = a => ({READY: "Bereit zum Senden", FORM: "Form muss korrigiert werden", FRAGE: "Wartet auf deine Antwort", WARTET_BEDINGUNG: "Wartet auf eine Bedingung", WARTET_TAKT: "Wartet auf den Claude-Takt", ERSATZ: "Wird durch einen neuen Entwurf ersetzt", NEU_LESEN: "Wird neu gelesen", ERLEDIGT_SELBST: "Hat sich erledigt", OK: "In Ordnung"}[a] || String(a || "").toLowerCase().replace(/_/g, " "));
 const artText = a => ({FRAGE: "Frage", BITTE: "Bitte", ENTSCHEIDUNG: "Entscheidung", INFO: "Information", AUFGABE: "Aufgabe"}[a] || a || "");
 const standText = s => ({ENTSCHIEDEN: "entschieden", KENNTNIS: "zur Kenntnis", SPAETER: "später"}[s] || s);
 
