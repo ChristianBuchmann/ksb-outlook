@@ -267,7 +267,7 @@ function zeichnen(){
   const L = LAGE || {}, mi = L.mitte || {}, e = L.entwurf, a = L.ausgang;
   const titel = e ? "Entwurf an " + (e.an || []).join(", ") : (mi.person && mi.person.name) || (mi.haus && mi.haus.name) || mi.partner || (KTX && KTX.von) || "Mail";
   const unter = [!e && mi.person && mi.haus && mi.haus.name, e && mi.haus && mi.haus.name, e ? e.betreff : KTX && KTX.betreff].filter(Boolean).join(", ");
-  let h = '<header class="kopf"><svg class="laute" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 3c-1.7 3.2-2.6 6.6-2.6 9.4C4.4 17 7.6 21 12 21s7.6-4 7.6-8.6C19.6 9.6 18.7 6.2 17 3h-1.6c1.5 3 2.3 6.2 2.3 9.1 0 3.6-2.4 6.9-5.7 6.9s-5.7-3.3-5.7-6.9c0-2.9.8-6.1 2.3-9.1H7zm3 2v11h1.2V5H10zm2.8 0v11H14V5h-1.2z"/></svg>' +
+  let h = '<header class="kopf"><img class="laute" src="bilder/symbol-64.png" alt="">' +
     '<div class="wer"><b>' + esc(titel) + "</b><small>" + esc(unter) + '</small></div><div class="knoepfe">' +
     (GROSS ? "" : '<button class="ik" type="button" id="kGross" title="In einem eigenen Fenster öffnen, das du auf einen zweiten Bildschirm ziehen kannst">Groß</button>') +
     '<button class="ik" type="button" id="kNeu" title="Neu laden">Neu</button></div></header>';
