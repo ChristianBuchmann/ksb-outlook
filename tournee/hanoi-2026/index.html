@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Hanoi 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Tourneeplan Hanoi 2026, Wiener KammerOrchester.
+   Aufbau nach Standard Tourneebuch Abschnitt 6: Papier, weiße Karten, Cormorant für Überschriften, Source Sans 3 für Text.
+   WKO: keine Bilder, keine Hausfarben, Akzent Anthrazit. Der Reisende kann den Akzent im Farbwähler ändern.
+   In dieser Datei stehen keine Tourdaten. Sie kommen erst nach der Anmeldung von der Funktion hanoi-login. */
+:root{
+  --paper:#F7F1E6; --card:#FFFFFF; --ink:#24272B; --grey:#6E6A62; --line:#E6DECF;
+  --accent:#33373D; --on-accent:#FFFFFF; --soft:#EEE7DA;
+  --err:#A93226; --ok:#2E6B3A;
+  --shadow:0 1px 3px rgba(60,45,25,.09);
+  --display:"Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --text:"Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#1A1916; --card:#24221E; --ink:#EEE8DC; --grey:#A7A093; --line:#38342D;
+    --accent:#C9CDD3; --on-accent:#1A1916; --soft:#2D2A25;
+    --err:#E58C80; --ok:#8CCB97;
+    --shadow:0 1px 3px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.45 var(--text)}
+a{color:var(--accent);font-weight:600;text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
+
+.wrap{max-width:680px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+/* Kopf */
+header.kopf{text-align:center;padding-block:calc(30px + env(safe-area-inset-top, 0px)) 14px}
+.marke{font:700 12px/1 var(--text);letter-spacing:.32em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 54px/1 var(--display);color:var(--accent);margin:10px 0 6px;letter-spacing:.02em}
+.landesschrift{font:600 19px/1.2 var(--display);letter-spacing:.18em;color:var(--grey)}
+.untertitel{font-size:15px;color:var(--grey);margin-top:8px}
+.leiste{display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap}
+.pill{font:700 13px/1 var(--text);min-height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--accent);cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+
+/* Karten, Formular */
+.karte{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:20px}
+.anmeldung{margin-block:14px 28px}
+.anmeldung h2{font:700 26px/1.1 var(--display);color:var(--accent);margin:0 0 6px}
+.anmeldung p{margin:0 0 14px;color:var(--grey);font-size:15.5px}
+label{display:block;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-bottom:6px}
+input{width:100%;font:17px var(--text);padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+input:focus{outline:none;border-color:var(--accent)}
+#inp-code{font-size:26px;letter-spacing:.32em;text-align:center;font-variant-numeric:tabular-nums}
+.knopf{width:100%;font:700 17px var(--text);padding:14px;border-radius:99px;border:0;background:var(--accent);color:var(--on-accent);margin-top:14px;cursor:pointer}
+.knopf:disabled{opacity:.5;cursor:default}
+.nebenlinks{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:15px}
+.textknopf{background:none;border:0;padding:4px 0;font:600 15px var(--text);color:var(--accent);cursor:pointer}
+.meldung{font-size:15px;margin-top:12px;min-height:1.2em}
+.meldung.fehler{color:var(--err)}
+.meldung.gut{color:var(--ok)}
+.hilfe{font-size:14px;color:var(--grey);margin-top:16px;text-align:center}
+
+/* App */
+.wer{display:flex;justify-content:center;font-size:14px;color:var(--grey);margin-bottom:4px}
+.hinweis{background:var(--soft);border-radius:10px;padding:10px 14px;font-size:14.5px;margin:10px 0}
+nav.reiter{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top, 0px)}
+nav.reiter .zeile{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-block:10px}
+nav.reiter .zeile::-webkit-scrollbar{display:none}
+nav.reiter .pill{flex:0 0 auto;font-size:14px}
+section.teil{padding-block:18px 8px}
+h2.abschnitt{font:700 30px/1.1 var(--display);color:var(--accent);text-align:center;margin:4px 0 2px;text-wrap:balance}
+.unterzeile{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);text-align:center;margin-bottom:16px}
+h3{font:700 22px/1.2 var(--display);color:var(--accent);margin:22px 0 8px;text-wrap:balance}
+h3:first-child{margin-top:0}
+p{margin:0 0 10px}
+.grau{color:var(--grey)}
+.klein{font-size:14.5px}
+.liste{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.liste > *{padding:13px 16px;border-top:1px solid var(--line)}
+.liste > *:first-child{border-top:0}
+.marker{display:inline-block;font:700 11px/1 var(--text);letter-spacing:.12em;text-transform:uppercase;color:var(--on-accent);background:var(--accent);border-radius:99px;padding:4px 8px;margin-right:6px;vertical-align:2px}
+
+/* Tage */
+.tage{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px}
+.tage::-webkit-scrollbar{display:none}
+.tag{flex:0 0 auto;width:58px;height:66px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--accent);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:var(--text)}
+.tag .wt{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.tag .zahl{font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.tag .mon{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.tag[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.tag.heute{box-shadow:0 0 0 2px var(--accent) inset}
+.tagkopf{font:700 25px/1.15 var(--display);color:var(--accent);margin:4px 0 10px}
+
+/* Programm */
+.programm{margin-bottom:22px}
+.programm .datum{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey)}
+.programm .titel{font:700 25px/1.15 var(--display);color:var(--accent);margin:2px 0 4px}
+.programm .solisten{font:600 italic 18px/1.3 var(--display);margin-bottom:10px}
+.programm ul{list-style:none;margin:0;padding:0}
+.programm li{padding:8px 0;border-top:1px solid var(--line);font-size:15.5px}
+.programm li:first-child{border-top:0}
+.programm li.pause{text-align:center;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);font-size:13px;padding:12px 0}
+
+/* Flüge */
+.flug{display:grid;grid-template-columns:auto 1fr;column-gap:14px;row-gap:2px;font-variant-numeric:tabular-nums}
+.flug .wann{font-weight:700;white-space:nowrap}
+.flug .nr{font-weight:700;color:var(--accent)}
+.flug .route{grid-column:1 / -1;min-width:0}
+.flug .zeit{grid-column:1 / -1;color:var(--grey);font-size:15px}
+
+/* Kontakte */
+.kontakt .name{font:700 20px/1.2 var(--display)}
+.kontakt .rolle{font-size:14.5px;color:var(--grey);margin-top:2px}
+.kontakt .wege{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:15.5px;font-variant-numeric:tabular-nums}
+.kontakt .wege a{word-break:break-all}
+.orga{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--grey);margin:20px 0 8px}
+.orga:first-child{margin-top:0}
+
+/* Fuß */
+footer.fuss{text-align:center;color:var(--grey);font-size:14px;padding-block:30px calc(30px + env(safe-area-inset-bottom, 0px))}
+footer.fuss p{margin:0 0 8px}
+.farben{display:flex;justify-content:center;gap:10px;margin:12px 0 18px}
+.farbe{width:30px;height:30px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.farbe[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+@media (prefers-reduced-motion: no-preference){ html{scroll-behavior:smooth} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="kopf">
+    <div class="marke">Wiener KammerOrchester</div>
+    <h1>Hanoi 2026</h1>
+    <div class="landesschrift" lang="vi">Hà Nội</div>
+    <div class="untertitel" data-t="untertitel">7. und 8. November 2026, Ho Guom Opera</div>
+    <div class="leiste" role="group" aria-label="Sprache">
+      <button class="pill" type="button" data-sprache="de" id="sp-de">DE</button>
+      <button class="pill" type="button" data-sprache="en" id="sp-en">EN</button>
+    </div>
+  </header>
+
+  <!-- Anmeldung, Schritt 1: Adresse -->
+  <section class="karte anmeldung" id="schritt-mail" hidden>
+    <h2 data-t="anmeldung">Anmeldung</h2>
+    <p data-t="anmeldungText">Mit der E-Mail-Adresse, die das Orchesterbüro hat. Der Code kommt per Mail.</p>
+    <form id="form-mail" novalidate>
+      <label for="inp-mail" data-t="mailLabel">E-Mail-Adresse</label>
+      <input type="email" id="inp-mail" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required>
+      <button class="knopf" type="submit" id="btn-mail" data-t="codeAnfordern">Code anfordern</button>
+    </form>
+    <div class="meldung" id="msg-mail" role="status"></div>
+    <div class="hilfe"><span data-t="hilfe">Fragen zur Anmeldung:</span> doris@buchmann.at</div>
+  </section>
+
+  <!-- Anmeldung, Schritt 2: Code -->
+  <section class="karte anmeldung" id="schritt-code" hidden>
+    <h2 data-t="anmeldung">Anmeldung</h2>
+    <p id="code-text"></p>
+    <form id="form-code" novalidate>
+      <label for="inp-code" data-t="codeLabel">Code aus der Mail</label>
+      <input type="text" id="inp-code" autocomplete="one-time-code" inputmode="numeric" maxlength="7" required>
+      <button class="knopf" type="submit" id="btn-code" data-t="anmelden">Anmelden</button>
+    </form>
+    <div class="meldung" id="msg-code" role="status"></div>
+    <div class="nebenlinks">
+      <button class="textknopf" type="button" id="btn-neu" data-t="neuerCode">Neuen Code anfordern</button>
+      <button class="textknopf" type="button" id="btn-andere" data-t="andereAdresse">Andere Adresse</button>
+    </div>
+  </section>
+
+  <!-- Laden -->
+  <section class="karte anmeldung" id="laden" hidden>
+    <p id="laden-text" data-t="laden">Der Tourneeplan wird geladen.</p>
+    <button class="knopf" type="button" id="btn-nochmal" data-t="nochmal" hidden>Noch einmal versuchen</button>
+  </section>
+</div>
+
+<!-- App -->
+<div id="app" hidden>
+  <div class="wrap">
+    <div class="wer" id="wer"></div>
+    <div class="hinweis" id="offline" hidden></div>
+  </div>
+  <nav class="reiter" aria-label="Abschnitte">
+    <div class="wrap"><div class="zeile" id="reiter"></div></div>
+  </nav>
+  <div class="wrap">
+    <section class="teil" id="teil-tage" data-reiter="tage"></section>
+    <section class="teil" id="teil-programm" data-reiter="programm" hidden></section>
+    <section class="teil" id="teil-fluege" data-reiter="fluege" hidden></section>
+    <section class="teil" id="teil-hotels" data-reiter="hotels" hidden></section>
+    <section class="teil" id="teil-info" data-reiter="info" hidden></section>
+    <section class="teil" id="teil-kontakte" data-reiter="kontakte" hidden></section>
+  </div>
+</div>
+
+<footer class="fuss wrap">
+  <div id="fuss-app" hidden>
+    <div class="farben" id="farben" role="group" aria-label="Farbe"></div>
+    <p data-t="vorbehalt">Zeiten und Abläufe können sich vor Ort ändern. Es gilt, was die Tourleitung ansagt.</p>
+    <p><button class="textknopf" type="button" id="btn-ab" data-t="abmelden">Abmelden</button></p>
+  </div>
+  <p data-t="herausgeber">Herausgeber: Wiener KammerOrchester, Schachnerstraße 27, 1220 Wien</p>
+</footer>
+
+<script>
+(function(){
+'use strict';
+
+var FN = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/hanoi-login';
+var K = { token:'hanoi_token', mail:'hanoi_email', sprache:'hanoi_lang', farbe:'hanoi_farbe', cache:'hanoi_cache', reiter:'hanoi_reiter' };
+
+var TXT = {
+  de: {
+    untertitel:'7. und 8. November 2026, Ho Guom Opera',
+    anmeldung:'Anmeldung', anmeldungText:'Mit der E-Mail-Adresse, die das Orchesterbüro hat. Der Code kommt per Mail.',
+    mailLabel:'E-Mail-Adresse', codeAnfordern:'Code anfordern', codeLabel:'Code aus der Mail', anmelden:'Anmelden',
+    neuerCode:'Neuen Code anfordern', andereAdresse:'Andere Adresse', hilfe:'Fragen zur Anmeldung:',
+    codeGeschickt:'Der Code ist an {mail} unterwegs. Er gilt 15 Minuten. Danach bleibt dieses Gerät angemeldet.',
+    neuGeschickt:'Ein neuer Code ist unterwegs.',
+    laden:'Der Tourneeplan wird geladen.', nochmal:'Noch einmal versuchen',
+    e_EMAIL_UNGUELTIG:'Bitte eine gültige E-Mail-Adresse eingeben.',
+    e_NICHT_IN_LISTE:'Diese Adresse steht nicht auf der Reiseliste. Bitte die Adresse verwenden, die das Orchesterbüro hat.',
+    e_ZU_VIELE_VERSUCHE:'Zu viele Codes in kurzer Zeit. Bitte in zehn Minuten noch einmal.',
+    e_CODE_FALSCH:'Der Code stimmt nicht oder ist abgelaufen.',
+    e_EINGABE_FEHLT:'Bitte den sechsstelligen Code aus der Mail eingeben.',
+    e_NETZ:'Keine Verbindung zum Server. Bitte gleich noch einmal versuchen.',
+    e_SERVER:'Beim Server ist etwas schiefgegangen. Bitte gleich noch einmal versuchen.',
+    offline:'Ohne Verbindung. Angezeigt wird der Stand vom {zeit}.',
+    angemeldet:'Angemeldet: {name}',
+    r_tage:'Tagesablauf', r_programm:'Programm', r_fluege:'Flüge', r_hotels:'Hotels', r_info:'Info', r_kontakte:'Kontakte',
+    u_tage:'Antippen wählt den Tag', u_programm:'Das spielen wir', u_fluege:'Gruppe und Ausnahmen', u_hotels:'Antippen öffnet die Karte', u_info:'Gut zu wissen', u_kontakte:'Zum Antippen',
+    hinflug:'Hinflug', rueckflug:'Rückflug', ausnahmen:'Einzelne Ausnahmen', persoenlich:'Persönlich',
+    spielort:'Spielort', visum:'Visum', essen:'Essen', freiertag:'Freier Tag und Ausflug', veranstalter:'Veranstalter',
+    pause:'Pause', keineDaten:'Dazu gibt es noch keine Angaben.',
+    vorbehalt:'Zeiten und Abläufe können sich vor Ort ändern. Es gilt, was die Tourleitung ansagt.',
+    abmelden:'Abmelden', herausgeber:'Herausgeber: Wiener KammerOrchester, Schachnerstraße 27, 1220 Wien',
+    farbe:'Farbe'
+  },
+  en: {
+    untertitel:'7 and 8 November 2026, Ho Guom Opera',
+    anmeldung:'Sign in', anmeldungText:'With the email address the orchestra office has on file. The code arrives by email.',
+    mailLabel:'Email address', codeAnfordern:'Send code', codeLabel:'Code from the email', anmelden:'Sign in',
+    neuerCode:'Send a new code', andereAdresse:'Different address', hilfe:'Questions about signing in:',
+    codeGeschickt:'The code is on its way to {mail}. It is valid for 15 minutes. After that this device stays signed in.',
+    neuGeschickt:'A new code is on its way.',
+    laden:'Loading the tour plan.', nochmal:'Try again',
+    e_EMAIL_UNGUELTIG:'Please enter a valid email address.',
+    e_NICHT_IN_LISTE:'This address is not on the travel list. Please use the address the orchestra office has on file.',
+    e_ZU_VIELE_VERSUCHE:'Too many codes in a short time. Please try again in ten minutes.',
+    e_CODE_FALSCH:'The code is wrong or has expired.',
+    e_EINGABE_FEHLT:'Please enter the six-digit code from the email.',
+    e_NETZ:'No connection to the server. Please try again in a moment.',
+    e_SERVER:'Something went wrong on the server. Please try again in a moment.',
+    offline:'No connection. Showing the version from {zeit}.',
+    angemeldet:'Signed in: {name}',
+    r_tage:'Schedule', r_programm:'Programme', r_fluege:'Flights', r_hotels:'Hotels', r_info:'Info', r_kontakte:'Contacts',
+    u_tage:'Tap to choose the day', u_programm:'What we play', u_fluege:'Group and exceptions', u_hotels:'Tap to open the map', u_info:'Good to know', u_kontakte:'Tap to call or write',
+    hinflug:'Outbound', rueckflug:'Return', ausnahmen:'Individual exceptions', persoenlich:'Personal',
+    spielort:'Venue', visum:'Visa', essen:'Meals', freiertag:'Free day and excursion', veranstalter:'Organiser',
+    pause:'Interval', keineDaten:'No details yet.',
+    vorbehalt:'Times and arrangements may change on site. What the tour management announces applies.',
+    abmelden:'Sign out', herausgeber:'Published by Wiener KammerOrchester, Schachnerstraße 27, 1220 Vienna, Austria',
+    farbe:'Colour'
+  }
+};
+
+var FARBEN = [
+  { name:'Anthrazit', hell:'#33373D', dunkel:'#C9CDD3' },
+  { name:'Weinrot',   hell:'#7A1626', dunkel:'#E39AA4' },
+  { name:'Petrol',    hell:'#1F5F59', dunkel:'#6FCABE' },
+  { name:'Nachtblau', hell:'#23395B', dunkel:'#9CB8E3' },
+  { name:'Olive',     hell:'#55592A', dunkel:'#C6CB8E' },
+  { name:'Aubergine', hell:'#5A2A4E', dunkel:'#D8A6CB' }
+];
+var REITER = ['tage','programm','fluege','hotels','info','kontakte'];
+
+var LANG = 'de', DATEN = null, REISENDER = null, MAIL = '', TAG = null, AKTIV = 'tage';
+
+/* Speicher: darf fehlen oder werfen */
+function lies(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function schreib(k, v){ try{ if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){} }
+
+function $(id){ return document.getElementById(id); }
+function t(k, ersatz){
+  var s = (TXT[LANG] && TXT[LANG][k]) || TXT.de[k] || k;
+  if (ersatz) Object.keys(ersatz).forEach(function(n){ s = s.split('{' + n + '}').join(ersatz[n]); });
+  return s;
+}
+/* Ein Wert aus den Daten: Text oder {de, en} */
+function L(v){
+  if (v == null) return '';
+  if (typeof v === 'object' && !Array.isArray(v)) return v[LANG] || v.de || v.en || '';
+  return String(v);
+}
+function el(tag, attrs){
+  var e = document.createElement(tag);
+  if (attrs) Object.keys(attrs).forEach(function(k){
+    var v = attrs[k];
+    if (v == null || v === false) return;
+    if (k === 'text') e.textContent = v;
+    else if (k === 'class') e.className = v;
+    else if (k.slice(0,2) === 'on') e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  });
+  for (var i = 2; i < arguments.length; i++){
+    var c = arguments[i];
+    if (c == null || c === false) continue;
+    if (Array.isArray(c)) c.forEach(function(x){ if (x != null && x !== false) e.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); });
+    else e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+function locale(){ return LANG === 'en' ? 'en-GB' : 'de-AT'; }
+function datum(iso){
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+}
+function fmt(iso, opts){ var d = datum(iso); return d ? new Intl.DateTimeFormat(locale(), opts).format(d) : (iso || ''); }
+function langesDatum(iso){ return fmt(iso, { weekday:'long', day:'numeric', month:'long', year:'numeric' }); }
+function kurzesDatum(iso){ return fmt(iso, { weekday:'short', day:'numeric', month:'short' }); }
+function heuteIso(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function karteLink(adresse){ return 'https://maps.apple.com/?q=' + encodeURIComponent(adresse + ', Vietnam'); }
+function telLink(nr){ return 'tel:' + String(nr).replace(/[^\d+]/g, ''); }
+function persoenlich(x){ return x && typeof x === 'object' && x['for'] ? el('span', { class:'marker', text:t('persoenlich') }) : null; }
+
+/* Server */
+function rufe(body){
+  return fetch(FN, { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) })
+    .then(function(r){ return r.json().catch(function(){ return { ok:false, status: r.ok ? 'SERVER' : 'SERVER' }; }); },
+          function(){ return { ok:false, status:'NETZ' }; });
+}
+
+/* Ansichten */
+function zeige(id){
+  ['schritt-mail','schritt-code','laden'].forEach(function(x){ $(x).hidden = (x !== id); });
+  var app = (id === 'app');
+  $('app').hidden = !app;
+  $('fuss-app').hidden = !app;
+}
+function meldung(id, text, art){ var m = $(id); m.textContent = text || ''; m.className = 'meldung' + (art ? ' ' + art : ''); }
+
+function texteSetzen(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-t]').forEach(function(e){ e.textContent = t(e.getAttribute('data-t')); });
+  $('sp-de').setAttribute('aria-pressed', LANG === 'de');
+  $('sp-en').setAttribute('aria-pressed', LANG === 'en');
+  if (MAIL) $('code-text').textContent = t('codeGeschickt', { mail: MAIL });
+}
+
+/* Farbwähler */
+function farbeSetzen(i){
+  var f = FARBEN[i] || FARBEN[0];
+  var dunkel = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.style.setProperty('--accent', dunkel ? f.dunkel : f.hell);
+  document.querySelectorAll('.farbe').forEach(function(b, j){ b.setAttribute('aria-pressed', j === i); });
+}
+function farbenBauen(){
+  var box = $('farben'); box.innerHTML = '';
+  var gewaehlt = parseInt(lies(K.farbe) || '0', 10) || 0;
+  FARBEN.forEach(function(f, i){
+    box.appendChild(el('button', { class:'farbe', type:'button', title:f.name, 'aria-label':f.name, style:'background:' + f.hell,
+      onclick:function(){ schreib(K.farbe, String(i)); farbeSetzen(i); } }));
+  });
+  farbeSetzen(gewaehlt);
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    var neu = function(){ farbeSetzen(parseInt(lies(K.farbe) || '0', 10) || 0); };
+    if (mq.addEventListener) mq.addEventListener('change', neu); else if (mq.addListener) mq.addListener(neu);
+  }
+}
+
+/* Abschnitte */
+function kopf(teil){
+  return [ el('h2', { class:'abschnitt', text:t('r_' + teil) }), el('div', { class:'unterzeile', text:t('u_' + teil) }) ];
+}
+function leer(){ return el('p', { class:'grau', text:t('keineDaten') }); }
+
+function baueTage(c){
+  var box = $('teil-tage'); box.innerHTML = '';
+  box.append.apply(box, kopf('tage'));
+  var tage = (c.schedule || []).filter(function(d){ return d && d.date; });
+  if (!tage.length){ box.appendChild(leer()); return; }
+  var heute = heuteIso();
+  if (TAG == null || !tage.some(function(d){ return d.date === TAG; })){
+    TAG = tage.some(function(d){ return d.date === heute; }) ? heute : tage[0].date;
+  }
+  var leiste = el('div', { class:'tage', role:'group', 'aria-label':t('r_tage') });
+  var inhalt = el('div');
+  tage.forEach(function(d){
+    leiste.appendChild(el('button', {
+      class:'tag' + (d.date === heute ? ' heute' : ''), type:'button', 'aria-pressed': d.date === TAG, 'aria-label': langesDatum(d.date),
+      onclick:function(){ TAG = d.date; baueTage(DATEN); }
+    }, el('span', { class:'wt', text:fmt(d.date, { weekday:'short' }).replace('.', '') }),
+       el('span', { class:'zahl', text:String(datum(d.date).getDate()) }),
+       el('span', { class:'mon', text:fmt(d.date, { month:'short' }).replace('.', '') })));
+  });
+  var tag = tage.filter(function(d){ return d.date === TAG; })[0];
+  inhalt.appendChild(el('div', { class:'tagkopf', text:langesDatum(tag.date) }));
+  var acts = (tag.activities || []).map(function(a){
+    var obj = a && typeof a === 'object' && !Array.isArray(a) && !('de' in a && !('text' in a));
+    if (!obj) return el('div', { text:L(a) });
+    return el('div', null, persoenlich(a), a.time ? el('strong', { text:L(a.time) + ' ' }) : null, L(a.text));
+  });
+  inhalt.appendChild(acts.length ? el('div', { class:'liste' }, acts) : leer());
+  box.appendChild(leiste); box.appendChild(inhalt);
+  var akt = leiste.querySelector('[aria-pressed="true"]');
+  if (akt && akt.scrollIntoView) try{ akt.scrollIntoView({ block:'nearest', inline:'center' }); }catch(e){}
+}
+
+function baueProgramm(c){
+  var box = $('teil-programm'); box.innerHTML = '';
+  box.append.apply(box, kopf('programm'));
+  var pr = c.programmes || [];
+  if (!pr.length){ box.appendChild(leer()); return; }
+  pr.forEach(function(p){
+    var karte = el('div', { class:'karte programm' },
+      el('div', { class:'datum', text:langesDatum(p.date) }),
+      el('div', { class:'titel', text:L(p.title) }),
+      p.soloists ? el('div', { class:'solisten', text:L(p.soloists) }) : null,
+      el('ul', null, (p.works || []).map(function(w){
+        var s = L(w);
+        if (/^(intermission|pause|interval)$/i.test(s.trim())) return el('li', { class:'pause', text:t('pause') });
+        return el('li', { text:s });
+      })));
+    box.appendChild(karte);
+  });
+}
+
+function flugZeile(f){
+  return el('div', { class:'flug' },
+    el('span', { class:'wann', text:kurzesDatum(f.date) }),
+    el('span', { class:'nr', text:L(f.flight) }),
+    el('span', { class:'route', text:L(f.route) }),
+    f.time ? el('span', { class:'zeit', text:L(f.time) }) : null);
+}
+function baueFluege(c){
+  var box = $('teil-fluege'); box.innerHTML = '';
+  box.append.apply(box, kopf('fluege'));
+  var f = c.flights;
+  if (!f){ box.appendChild(leer()); return; }
+  if ((f.group_outbound || []).length){ box.appendChild(el('h3', { text:t('hinflug') })); box.appendChild(el('div', { class:'liste' }, f.group_outbound.map(flugZeile))); }
+  if ((f.group_return || []).length){ box.appendChild(el('h3', { text:t('rueckflug') })); box.appendChild(el('div', { class:'liste' }, f.group_return.map(flugZeile))); }
+  if ((f.exceptions || []).length){
+    box.appendChild(el('h3', { text:t('ausnahmen') }));
+    box.appendChild(el('div', { class:'liste' }, f.exceptions.map(function(x){
+      return el('div', null, persoenlich(x), el('strong', { text:L(x.person) }), el('div', { class:'klein', text:L(x.detail) }));
+    })));
+  }
+  if (f.timezone_note) box.appendChild(el('p', { class:'grau klein', style:'margin-top:14px', text:L(f.timezone_note) }));
+}
+
+function baueHotels(c){
+  var box = $('teil-hotels'); box.innerHTML = '';
+  box.append.apply(box, kopf('hotels'));
+  var h = c.hotels;
+  if (!h){ box.appendChild(leer()); return; }
+  if (h.status) box.appendChild(el('div', { class:'hinweis', text:L(h.status) }));
+  var liste = (h.hotels || []).map(function(x){
+    return el('div', null, persoenlich(x),
+      el('div', { class:'kontakt' }, el('div', { class:'name', text:L(x.name) })),
+      x.address ? el('a', { href:karteLink(L(x.address)), target:'_blank', rel:'noopener', text:L(x.address) }) : null,
+      x.phone ? el('div', null, el('a', { href:telLink(L(x.phone)), text:L(x.phone) })) : null,
+      x.rooms ? el('div', { class:'grau klein', text:L(x.rooms) }) : null);
+  });
+  if (liste.length) box.appendChild(el('div', { class:'liste' }, liste));
+  if (h.notes) box.appendChild(el('p', { class:'grau klein', style:'margin-top:14px', text:L(h.notes) }));
+}
+
+function baueInfo(c){
+  var box = $('teil-info'); box.innerHTML = '';
+  box.append.apply(box, kopf('info'));
+  var n = 0;
+  if (c.venue){
+    n++;
+    box.appendChild(el('h3', { text:t('spielort') }));
+    box.appendChild(el('div', { class:'karte' },
+      el('div', { class:'kontakt' }, el('div', { class:'name', text:L(c.venue.name) })),
+      c.venue.address ? el('a', { href:karteLink(L(c.venue.address)), target:'_blank', rel:'noopener', text:L(c.venue.address) }) : null,
+      c.venue.operator ? el('div', { class:'grau klein', style:'margin-top:6px', text:t('veranstalter') + ': ' + L(c.venue.operator) }) : null));
+  }
+  [['visa','visum'], ['meals','essen'], ['free_day_excursion','freiertag']].forEach(function(p){
+    var v = c[p[0]]; if (!v) return; n++;
+    box.appendChild(el('h3', { text:t(p[1]) }));
+    box.appendChild(el('div', { class:'karte' }, el('p', { style:'margin:0', text:L(v.text != null ? v.text : v) })));
+  });
+  if (!n) box.appendChild(leer());
+}
+
+function baueKontakte(c){
+  var box = $('teil-kontakte'); box.innerHTML = '';
+  box.append.apply(box, kopf('kontakte'));
+  var ks = c.contacts || [];
+  if (!ks.length){ box.appendChild(leer()); return; }
+  var gruppen = [], nach = {};
+  ks.forEach(function(k){ var o = L(k.org) || ''; if (!nach[o]){ nach[o] = []; gruppen.push(o); } nach[o].push(k); });
+  gruppen.forEach(function(o){
+    if (o) box.appendChild(el('div', { class:'orga', text:o }));
+    box.appendChild(el('div', { class:'liste' }, nach[o].map(function(k){
+      return el('div', { class:'kontakt' },
+        el('div', { class:'name', text:L(k.name) }),
+        k.role ? el('div', { class:'rolle', text:L(k.role) }) : null,
+        el('div', { class:'wege' },
+          k.phone ? el('a', { href:telLink(L(k.phone)), text:L(k.phone) }) : null,
+          k.email ? el('a', { href:'mailto:' + L(k.email), text:L(k.email) }) : null));
+    })));
+  });
+}
+
+function reiterBauen(){
+  var z = $('reiter'); z.innerHTML = '';
+  REITER.forEach(function(r){
+    z.appendChild(el('button', { class:'pill', type:'button', 'aria-pressed': r === AKTIV, text:t('r_' + r),
+      onclick:function(){ reiterWaehlen(r, true); } }));
+  });
+}
+function reiterWaehlen(r, nachOben){
+  AKTIV = REITER.indexOf(r) >= 0 ? r : 'tage';
+  schreib(K.reiter, AKTIV);
+  document.querySelectorAll('section.teil').forEach(function(s){ s.hidden = (s.getAttribute('data-reiter') !== AKTIV); });
+  document.querySelectorAll('#reiter .pill').forEach(function(b, i){ b.setAttribute('aria-pressed', REITER[i] === AKTIV); });
+  if (nachOben){ var n = document.querySelector('nav.reiter'); if (n && window.scrollY > n.offsetTop) window.scrollTo(0, n.offsetTop); }
+}
+
+function allesBauen(){
+  if (!DATEN) return;
+  if (REISENDER) $('wer').textContent = t('angemeldet', { name: [REISENDER.vorname, REISENDER.nachname].filter(Boolean).join(' ') });
+  reiterBauen();
+  baueTage(DATEN); baueProgramm(DATEN); baueFluege(DATEN); baueHotels(DATEN); baueInfo(DATEN); baueKontakte(DATEN);
+  reiterWaehlen(AKTIV, false);
+}
+
+/* Sprache */
+function spracheSetzen(s, ausdruecklich){
+  LANG = (s === 'en') ? 'en' : 'de';
+  if (ausdruecklich) schreib(K.sprache, LANG);
+  texteSetzen();
+  allesBauen();
+}
+
+/* Ablauf */
+function datenLaden(){
+  var token = lies(K.token);
+  if (!token){ zeige('schritt-mail'); return; }
+  zeige('laden'); $('btn-nochmal').hidden = true; $('laden-text').textContent = t('laden');
+  rufe({ action:'get_content', token:token }).then(function(j){
+    if (j.ok){
+      DATEN = j.content || {}; REISENDER = j.reisender || null;
+      schreib(K.cache, JSON.stringify({ zeit:Date.now(), content:DATEN, reisender:REISENDER }));
+      if (!lies(K.sprache) && REISENDER && REISENDER.sprache) LANG = REISENDER.sprache === 'en' ? 'en' : 'de';
+      $('offline').hidden = true;
+      texteSetzen(); zeige('app'); allesBauen();
+      return;
+    }
+    if (j.status === 'SESSION_UNGUELTIG' || j.status === 'KEIN_TOKEN'){ abmelden(); return; }
+    /* Kein Netz oder Serverfehler: letzten Stand zeigen, wenn es einen gibt */
+    var c = null; try{ c = JSON.parse(lies(K.cache) || 'null'); }catch(e){}
+    if (c && c.content){
+      DATEN = c.content; REISENDER = c.reisender || null;
+      if (!lies(K.sprache) && REISENDER && REISENDER.sprache) LANG = REISENDER.sprache === 'en' ? 'en' : 'de';
+      texteSetzen(); zeige('app'); allesBauen();
+      var o = $('offline');
+      o.textContent = t('offline', { zeit: new Intl.DateTimeFormat(locale(), { day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit' }).format(new Date(c.zeit)) });
+      o.hidden = false;
+      return;
+    }
+    $('laden-text').textContent = t(j.status === 'NETZ' ? 'e_NETZ' : 'e_SERVER');
+    $('btn-nochmal').hidden = false;
+  });
+}
+
+function codeAnfordern(neu){
+  var mail = ($('inp-mail').value || MAIL || '').trim().toLowerCase();
+  var ziel = neu ? 'msg-code' : 'msg-mail';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){ meldung(ziel, t('e_EMAIL_UNGUELTIG'), 'fehler'); return; }
+  var knopf = neu ? $('btn-neu') : $('btn-mail');
+  knopf.disabled = true; meldung(ziel, '');
+  rufe({ action:'request_code', email:mail }).then(function(j){
+    knopf.disabled = false;
+    if (j.ok){
+      MAIL = mail; schreib(K.mail, mail);
+      texteSetzen(); zeige('schritt-code');
+      $('inp-code').value = '';
+      meldung('msg-code', neu ? t('neuGeschickt') : '', neu ? 'gut' : '');
+      try{ $('inp-code').focus(); }catch(e){}
+      return;
+    }
+    meldung(ziel, t('e_' + (j.status || 'SERVER')), 'fehler');
+  });
+}
+
+function codePruefen(){
+  var code = ($('inp-code').value || '').replace(/\D+/g, '');
+  if (code.length !== 6){ meldung('msg-code', t('e_EINGABE_FEHLT'), 'fehler'); return; }
+  $('btn-code').disabled = true; meldung('msg-code', '');
+  rufe({ action:'verify_code', email:MAIL, code:code }).then(function(j){
+    $('btn-code').disabled = false;
+    if (j.ok && j.token){
+      schreib(K.token, j.token);
+      if (!lies(K.sprache) && j.sprache) LANG = j.sprache === 'en' ? 'en' : 'de';
+      datenLaden();
+      return;
+    }
+    meldung('msg-code', t('e_' + (j.status || 'SERVER')), 'fehler');
+  });
+}
+
+function abmelden(){
+  schreib(K.token, null); schreib(K.cache, null);
+  DATEN = null; REISENDER = null; TAG = null;
+  $('inp-mail').value = MAIL || lies(K.mail) || '';
+  meldung('msg-mail', ''); zeige('schritt-mail');
+}
+
+/* Start */
+document.querySelectorAll('[data-sprache]').forEach(function(b){
+  b.addEventListener('click', function(){ spracheSetzen(b.getAttribute('data-sprache'), true); });
+});
+$('form-mail').addEventListener('submit', function(e){ e.preventDefault(); codeAnfordern(false); });
+$('form-code').addEventListener('submit', function(e){ e.preventDefault(); codePruefen(); });
+$('inp-code').addEventListener('input', function(){ var v = this.value.replace(/\D+/g, ''); if (v.length === 6 && !$('btn-code').disabled) codePruefen(); });
+$('btn-neu').addEventListener('click', function(){ codeAnfordern(true); });
+$('btn-andere').addEventListener('click', function(){ MAIL = ''; schreib(K.mail, null); $('inp-mail').value = ''; meldung('msg-mail', ''); zeige('schritt-mail'); });
+$('btn-nochmal').addEventListener('click', datenLaden);
+$('btn-ab').addEventListener('click', abmelden);
+
+var gespeichert = lies(K.sprache);
+if (gespeichert === 'de' || gespeichert === 'en') LANG = gespeichert;
+else LANG = /^de\b/i.test(navigator.language || 'de') ? 'de' : (navigator.language ? 'en' : 'de');
+AKTIV = lies(K.reiter) || 'tage';
+MAIL = lies(K.mail) || '';
+$('inp-mail').value = MAIL;
+farbenBauen();
+texteSetzen();
+datenLaden();
+})();
+</script>
+</body>
+</html>
