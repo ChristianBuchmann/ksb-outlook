@@ -500,8 +500,42 @@ async function klick(e){
   }
   const tu = b.dataset.tu;
   if (tu === "antwort"){ b.disabled = true; ms("antwMs", "Wird übergeben."); try{ const r = await api("antwort_bauen", {mail_id: L.mail_id}); ms("antwMs", r.ok ? "Der Server baut die Antwort. Sie kommt als Entwurf in ein paar Minuten." : (r.fehler || "Nicht übergeben."), r.ok ? "gut" : "krit"); }catch(x){ ms("antwMs", "Nicht übergeben.", "krit"); b.disabled = false; } return; }
-  if (tu === "zerlegen" || tu === "zerlegen_neu"){ b.disabled = true; try{ await api("zerlegen", {mail_id: L.mail_id, neu: tu === "zerlegen_neu"}); }catch(x){} setTimeout(laden, 30000); b.textContent = "Wird zerlegt, etwa eine halbe Minute."; return; }
-  if (tu === "kurz"){ b.disabled = true; try{ await api("kurz", {conv: L.conv}); }catch(x){} setTimeout(laden, 20000); b.textContent = "Wird neu gefasst."; return; }
+  if (tu === "zerlegen" || tu === "zerlegen_neu"){
+    b.disabled = true; b.textContent = "Start wird angefragt.";
+    try{
+      const r = await api("zerlegen", {mail_id: L.mail_id, neu: tu === "zerlegen_neu"});
+      if (!r || r.ok !== true){
+        b.disabled = false;
+        b.textContent = (r && r.fehler) || "Start nicht bestätigt.";
+        return;
+      }
+    }catch(x){
+      b.disabled = false;
+      if (SCHLUESSEL) b.textContent = "Start nicht bestätigt.";
+      return;
+    }
+    setTimeout(laden, 30000);
+    b.textContent = "Wird zerlegt, etwa eine halbe Minute.";
+    return;
+  }
+  if (tu === "kurz"){
+    b.disabled = true; b.textContent = "Start wird angefragt.";
+    try{
+      const r = await api("kurz", {conv: L.conv});
+      if (!r || r.ok !== true){
+        b.disabled = false;
+        b.textContent = (r && r.fehler) || "Start nicht bestätigt.";
+        return;
+      }
+    }catch(x){
+      b.disabled = false;
+      if (SCHLUESSEL) b.textContent = "Start nicht bestätigt.";
+      return;
+    }
+    setTimeout(laden, 20000);
+    b.textContent = "Wird neu gefasst.";
+    return;
+  }
   if (tu === "frage"){ const t = ($("frTxt").value || "").trim(); if (!t) return; fragen(3, t, t); $("frTxt").value = ""; return; }
   if (b.dataset.wz != null){ const w = WERKZEUGE[Number(b.dataset.wz)]; fragen(Number(w[0]), w[1] || null, w[2]); return; }
   if (b.dataset.folge != null){ const f = FOLGE[Number(b.dataset.folge)]; befehl(f[1], "folgeMs"); return; }
