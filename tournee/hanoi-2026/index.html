@@ -226,12 +226,13 @@ var TXT = {
     mailLabel:'E-Mail-Adresse', codeAnfordern:'Code anfordern', codeLabel:'Code aus der Mail', anmelden:'Anmelden',
     neuerCode:'Neuen Code anfordern', andereAdresse:'Andere Adresse', hilfe:'Fragen zur Anmeldung:',
     codeGeschickt:'Der Code ist an {mail} unterwegs. Er gilt 15 Minuten. Danach bleibt dieses Gerät angemeldet.',
-    neuGeschickt:'Ein neuer Code ist unterwegs.',
+    neuGeschickt:'Code angefordert.',
     laden:'Der Tourneeplan wird geladen.', nochmal:'Noch einmal versuchen',
     e_EMAIL_UNGUELTIG:'Bitte eine gültige E-Mail-Adresse eingeben.',
     e_NICHT_IN_LISTE:'Diese Adresse steht nicht auf der Reiseliste. Bitte die Adresse verwenden, die das Orchesterbüro hat.',
     e_ZU_VIELE_VERSUCHE:'Zu viele Codes in kurzer Zeit. Bitte in zehn Minuten noch einmal.',
     e_CODE_FALSCH:'Der Code stimmt nicht oder ist abgelaufen.',
+    e_GESPERRT:'Dieser Zugang ist gesperrt. Bitte das Orchesterbüro kontaktieren.',
     e_EINGABE_FEHLT:'Bitte den sechsstelligen Code aus der Mail eingeben.',
     e_NETZ:'Keine Verbindung zum Server. Bitte gleich noch einmal versuchen.',
     e_SERVER:'Beim Server ist etwas schiefgegangen. Bitte gleich noch einmal versuchen.',
@@ -252,12 +253,13 @@ var TXT = {
     mailLabel:'Email address', codeAnfordern:'Send code', codeLabel:'Code from the email', anmelden:'Sign in',
     neuerCode:'Send a new code', andereAdresse:'Different address', hilfe:'Questions about signing in:',
     codeGeschickt:'The code is on its way to {mail}. It is valid for 15 minutes. After that this device stays signed in.',
-    neuGeschickt:'A new code is on its way.',
+    neuGeschickt:'Code requested.',
     laden:'Loading the tour plan.', nochmal:'Try again',
     e_EMAIL_UNGUELTIG:'Please enter a valid email address.',
     e_NICHT_IN_LISTE:'This address is not on the travel list. Please use the address the orchestra office has on file.',
     e_ZU_VIELE_VERSUCHE:'Too many codes in a short time. Please try again in ten minutes.',
     e_CODE_FALSCH:'The code is wrong or has expired.',
+    e_GESPERRT:'This access is blocked. Please contact the orchestra office.',
     e_EINGABE_FEHLT:'Please enter the six-digit code from the email.',
     e_NETZ:'No connection to the server. Please try again in a moment.',
     e_SERVER:'Something went wrong on the server. Please try again in a moment.',
@@ -284,7 +286,7 @@ var FARBEN = [
 ];
 var REITER = ['tage','programm','fluege','hotels','info','kontakte'];
 
-var LANG = 'de', DATEN = null, REISENDER = null, MAIL = '', TAG = null, AKTIV = 'tage';
+var LANG = 'de', DATEN = null, REISENDER = null, MAIL = '', TAG = null, AKTIV = 'tage', CODE_HINWEIS = null;
 
 /* Speicher: darf fehlen oder werfen */
 function lies(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
@@ -354,7 +356,7 @@ function texteSetzen(){
   document.querySelectorAll('[data-t]').forEach(function(e){ e.textContent = t(e.getAttribute('data-t')); });
   $('sp-de').setAttribute('aria-pressed', LANG === 'de');
   $('sp-en').setAttribute('aria-pressed', LANG === 'en');
-  if (MAIL) $('code-text').textContent = t('codeGeschickt', { mail: MAIL });
+  if (MAIL) $('code-text').textContent = CODE_HINWEIS ? L(CODE_HINWEIS) : t('codeGeschickt', { mail: MAIL });
 }
 
 /* Farbwähler */
@@ -588,6 +590,7 @@ function codeAnfordern(neu){
     knopf.disabled = false;
     if (j.ok){
       MAIL = mail; schreib(K.mail, mail);
+      CODE_HINWEIS = (j.hinweis || j.hinweis_en) ? { de:j.hinweis, en:j.hinweis_en } : null;
       texteSetzen(); zeige('schritt-code');
       $('inp-code').value = '';
       meldung('msg-code', neu ? t('neuGeschickt') : '', neu ? 'gut' : '');
