@@ -169,7 +169,7 @@ const fZeit = d => { if (!d) return ""; const x = new Date(d); return isNaN(x) ?
 const ohneStrich = s => String(s || "").replace(/\s+[–—]\s+/g, ", ");
 
 let REITER = "1";
-let SCHLUESSEL = null, KTX = null, LAGE = null, DIALOG = null, LADEN_NR = 0;
+let SCHLUESSEL = null, KTX = null, LAGE = null, DIALOG = null, LADEN_NR = 0, AUSWAHL_NR = 0;
 const offeneFragen = new Map(); // vertiefung id -> wofür
 
 /* ---------- Schlüssel ---------- */
@@ -225,6 +225,15 @@ function kontextLesen(){
 }
 
 /* ---------- Laden ---------- */
+async function auswahlLesen(){
+  const nr = ++AUSWAHL_NR;
+  ++LADEN_NR;
+  KTX = null; LAGE = null; REITER = "1"; offeneFragen.clear();
+  $("app").innerHTML = '<div class="leer"><span class="warte">Ich lese die neue Auswahl.</span></div>';
+  const kontext = await kontextLesen();
+  if (nr !== AUSWAHL_NR) return;
+  KTX = kontext; laden();
+}
 async function laden(){
   const nr = ++LADEN_NR;
   if (!KTX){ $("app").innerHTML = '<div class="leer">Keine Mail ausgewählt.</div>'; return; }
@@ -281,7 +290,7 @@ function zeichnen(){
   h += '<main class="raster" data-reiter="' + REITER + '"><section class="spalte eins">' + spalteEins(L) + '</section><section class="spalte zwei">' + spalteZwei(L) + '</section><section class="spalte drei">' + spalteDrei(L) + "</section></main>";
   h += '<footer class="befehl"><form id="befehlForm"><textarea id="befehlText" rows="1" placeholder="Sag, was geschehen soll. Zum Beispiel: Antwort, dass wir den Termin halten, Gage wie besprochen."></textarea><button class="k haupt" type="submit">Los</button></form><div class="hinweis">Geht als Auftrag an den Server. Ergebnis kommt als Entwurf. Gesendet wird nur von dir.</div><div class="meldung" id="befehlMs"></div></footer>';
   $("app").innerHTML = h;
-  if ($("warumText") && a && a.id) warumHolen(a.id);
+  if ($("warumText") && a && a.id && (!a.warum_anzeige || (a.warum_anzeige.automatisch && !a.warum_anzeige.aktuell))) warumHolen(a.id);
   const kh = document.querySelector(".kopf"); if (kh) document.documentElement.style.setProperty("--kopfh", kh.offsetHeight + "px");
   binden();
 }
@@ -313,10 +322,12 @@ function spalteEins(L){
   // Entwurf
   if (e){
     h += '<div class="ab"><h2>Warum dieser Entwurf da ist</h2>';
-    const brauchtKi = a && (!a.warum || (a.warum_ergaenzt && !a.warum_ki_am));
-    if (a && !brauchtKi) h += '<p class="lesen">' + esc(ohneStrich(a.warum)) + "</p>";
-    else if (a) h += '<p class="lesen" id="warumText"><span class="warte">Ich lese nach, warum es ihn gibt.</span></p>';
-    else h += '<p class="lesen">Diesen Entwurf hat nicht der Server gebaut. Dazu ist nichts festgehalten.</p>';
+    if (a){
+      const w = a.warum_anzeige;
+      h += '<p class="lesen" id="warumText">' + esc(ohneStrich(w && w.warum || "")) + '</p>' +
+        '<p class="klein leise" id="warumStand">' + esc(warumStandText(w)) + '</p>' +
+        '<button class="k klein" type="button" data-tu="warum-erneuern" id="warumNeu"' + (w && w.erneuern_moeglich && !w.aktuell ? '' : ' hidden') + '>Erklärung erneuern</button>';
+    } else h += '<p class="lesen">Diesen Entwurf hat nicht der Server gebaut. Dazu ist nichts festgehalten.</p>';
     if (a && a.auftrag) h += '<details class="auf"><summary>Interner Auftrag dahinter</summary><div class="klein vor">' + esc(ohneStrich(a.auftrag.anweisung || "")) + "</div></details>";
     if (a && a.bezug) h += '<dl class="fakten"><dt>Antwort auf</dt><dd>' + esc(a.bezug.von) + ", " + fDatum(a.bezug.am) + "<br><span class=\"leise\">" + esc(a.bezug.betreff || "") + "</span></dd></dl>";
     if (a && a.angelegt_von) h += '<dl class="fakten"><dt>Geschrieben von</dt><dd>' + esc(a.angelegt_von) + ", " + fZeit(a.angelegt_am) + "</dd></dl>";
@@ -499,6 +510,7 @@ async function klick(e){
     return;
   }
   const tu = b.dataset.tu;
+  if (tu === "warum-erneuern"){ if (L.ausgang && L.ausgang.id){ b.disabled = true; await warumHolen(L.ausgang.id, true); } return; }
   if (tu === "antwort"){ b.disabled = true; ms("antwMs", "Wird übergeben."); try{ const r = await api("antwort_bauen", {mail_id: L.mail_id}); ms("antwMs", r.ok ? "Der Server baut die Antwort. Sie kommt als Entwurf in ein paar Minuten." : (r.fehler || "Nicht übergeben."), r.ok ? "gut" : "krit"); }catch(x){ ms("antwMs", "Nicht übergeben.", "krit"); b.disabled = false; } return; }
   if (tu === "zerlegen" || tu === "zerlegen_neu"){
     b.disabled = true; b.textContent = "Start wird angefragt.";
@@ -541,11 +553,37 @@ async function klick(e){
   if (b.dataset.folge != null){ const f = FOLGE[Number(b.dataset.folge)]; befehl(f[1], "folgeMs"); return; }
   if (b.dataset.anh){ e.preventDefault(); const li = $("anh-" + b.dataset.anh); if (!li.hidden){ li.hidden = true; return; } li.hidden = false; li.firstChild.textContent = "Lädt."; try{ const r = await api("anhang", {id: Number(b.dataset.anh)}); li.firstChild.textContent = r.ok ? (r.text || "Kein Text ausgelesen.") : (r.fehler || ""); }catch(x){ li.firstChild.textContent = "Nicht geladen."; } return; }
 }
-async function warumHolen(id){
-  try{ const r = await api("warum", {ausgang_id: id}); const el = $("warumText"); if (!el) return;
-    if (r.ok){ el.textContent = ohneStrich(r.warum); if (LAGE && LAGE.ausgang && LAGE.ausgang.id === id){ LAGE.ausgang.warum = r.warum; LAGE.ausgang.warum_ki_am = new Date().toISOString(); } }
-    else el.textContent = r.fehler || "Das konnte ich gerade nicht nachlesen.";
-  }catch(x){}
+function warumDarstellen(r){
+  const text = $("warumText"), stand = $("warumStand"), neu = $("warumNeu");
+  if (text) text.textContent = ohneStrich(r.warum || "");
+  if (stand) stand.textContent = warumStandText(r);
+  if (neu){ neu.hidden = !(r.erneuern_moeglich && !r.aktuell); neu.disabled = false; }
+}
+function warumStandText(r){
+  if (!r) return "Ich prüfe den Erklärungsstand.";
+  if (r.manuell) return "Ursprüngliche Erklärung. Von der automatischen Erneuerung ausgenommen.";
+  if (r.grund === "ALT_HERKUNFT_UNKLAR") return "Die ältere Erklärung bleibt erhalten. Ihre Herkunft ist nicht mehr eindeutig belegt.";
+  if (r.aktuell && r.regelgebunden) return "Zum gespeicherten Entwurfsstand. Änderungen in Outlook erscheinen nach der Synchronisierung.";
+  if (r.grund === "REGELGRUNDLAGE_OFFEN") return "Die Regelgrundlage ist noch nicht vollständig bestätigt. Eine ältere Erklärung bitte prüfen.";
+  if (r.grund === "ENTWURFSBEZUG_OFFEN") return "Der gespeicherte Entwurfsstand ist noch nicht eindeutig zugeordnet. Bitte nach der Synchronisierung neu laden.";
+  if (r.grund === "MODELL_FEHLER" || r.grund === "MODELL_NICHT_VERFUEGBAR") return "Die Erklärung konnte gerade nicht erneuert werden.";
+  return r.warum ? "Älterer Erklärungsstand. Bitte vor dem Verwenden prüfen." : "Noch keine geprüfte Erklärung vorhanden.";
+}
+async function warumHolen(id, erneuern = false){
+  const nr = LADEN_NR, ktx = KTX, lage = LAGE, ausgang = lage && lage.ausgang;
+  const kontext = JSON.stringify(KTX), entwurf = JSON.stringify(lage && lage.entwurf);
+  const passt = () => nr === LADEN_NR && KTX === ktx && JSON.stringify(KTX) === kontext && LAGE === lage &&
+    LAGE && LAGE.ausgang === ausgang && ausgang.id === id && JSON.stringify(LAGE.entwurf) === entwurf;
+  try{
+    const r = await api("warum", {ausgang_id: id, graph: ktx && ktx.graph, erneuern});
+    if (!passt()) return;
+    ausgang.warum_anzeige = r; warumDarstellen(r);
+  }catch(x){
+    if (!passt()) return;
+    const stand = $("warumStand"), neu = $("warumNeu");
+    if (stand) stand.textContent = "Der Erklärungsstand konnte gerade nicht geprüft werden.";
+    if (neu) neu.disabled = false;
+  }
 }
 async function fragen(stufe, frage, wofuer){
   const L = LAGE || {};
@@ -606,8 +644,8 @@ async function start(){
     return;
   }
   if (!SCHLUESSEL){ zeigeAnmeldung(); return; }
-  KTX = await kontextLesen(); LAGE = null; laden();
-  try{ Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, async () => { KTX = await kontextLesen(); LAGE = null; REITER = "1"; offeneFragen.clear(); laden(); }); }catch(e){}
+  try{ Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, () => { auswahlLesen(); }); }catch(e){}
+  await auswahlLesen();
 }
 $("app").addEventListener("click", klick);
 if (window.Office && !TEST) Office.onReady(() => start()); else start();
