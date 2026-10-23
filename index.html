@@ -151,6 +151,8 @@ details.auf[open] > summary::before{content:"− ";}
 .text-entwurf{font:14px/1.5 var(--lese);white-space:pre-wrap;background:var(--flaeche);border:1px solid var(--linie);border-radius:var(--r);padding:10px 12px;max-height:340px;overflow:auto}
 .ablage-stufe{border:1px solid var(--linie);border-radius:var(--r);padding:9px 10px;margin:8px 0}
 .ablage-stufe h3{font-size:14px;margin:0 0 6px}.ablage-stufe p{margin:5px 0}.ablage-halt{padding-left:18px;margin:6px 0;color:var(--rot);font-size:13px}.ablage button[aria-pressed="true"]{border-color:var(--wein);background:var(--weinhell)}
+.analyse-stufe{border:1px solid var(--linie);border-radius:var(--r);padding:9px 10px;margin:8px 0;overflow-wrap:anywhere}
+.analyse-stufe h3{font-size:14px;margin:0 0 6px}.analyse-stufe p{margin:5px 0}
 .anmeldung{max-width:440px;margin:40px auto;padding:0 18px}
 .anmeldung h1{font:600 22px/1.3 var(--lese);margin:0 0 8px}
 </style>
@@ -194,6 +196,7 @@ async function api(aufruf, args){
 }
 function zeigeAnmeldung(hinweis){
   ablageZuruecksetzen();
+  analyseZuruecksetzen();
   $("app").innerHTML = '<div class="anmeldung"><h1>KSB Assistent</h1><p class="leise">Einmal deinen persönlichen Schlüssel eingeben. Outlook merkt ihn sich für alle deine Rechner.</p>' +
     (hinweis ? '<p class="meldung krit">' + esc(hinweis) + "</p>" : "") +
     '<form id="anm"><label class="feld" for="kf">Schlüssel</label><input type="text" id="kf" autocomplete="off" spellcheck="false"><div class="zeile" style="margin-top:10px"><button class="k haupt" type="submit">Anmelden</button></div><div class="meldung" id="anmMs"></div></form></div>';
@@ -450,6 +453,7 @@ function spalteDrei(L){
   [...offeneFragen.entries()].forEach(([id, w]) => { h += '<div class="antwort" id="vt-' + id + '"><div class="wofuer">' + esc(w) + '</div><span class="warte">Claude liest nach. Das dauert eine bis zwei Minuten.</span></div>'; });
   (mi.vertiefungen || []).slice().reverse().forEach(v => { if (!offeneFragen.has(v.id)) h += '<div class="antwort"><div class="wofuer">' + esc(v.frage ? kurzText(v.frage, 90) : v.stufe === 2 ? "Genauer erklärt" : "Nachgeforscht") + (v.alt ? ", vor der letzten Mail" : "") + '</div><p class="lesen">' + esc(ohneStrich(v.antwort || "")) + "</p></div>"; });
   h += "</div></div>";
+  h += '<div id="analyseBereich">' + analyseKarte() + '</div>';
   h += '<div class="ab"><h2>Folgeaktionen</h2><div class="zeile">' + FOLGE.map((f, i) => '<button class="k klein" type="button" data-folge="' + i + '">' + esc(f[0]) + "</button>").join("") + '</div><div class="meldung" id="folgeMs"></div></div>';
   const an = L.anhaenge || [], dk = L.dokumente || [], re = L.rechnungen || [];
   if (an.length) h += '<div class="ab"><h2>Anhänge im Faden<span class="zahl">' + an.length + '</span></h2><ul class="liste">' + an.map(x => '<li><span class="t">' + (x.gelesen ? '<a href="#" data-anh="' + x.id + '">' + esc(x.name) + "</a>" : esc(x.name)) + "<small>" + esc(x.von || "") + ", " + fDatum(x.am) + '</small></span><span class="rechts">' + groesse(x.groesse) + '</span></li><li hidden id="anh-' + x.id + '"><div class="text-entwurf" style="width:100%"></div></li>').join("") + "</ul></div>";
@@ -533,6 +537,85 @@ async function ablageKlick(tu, grund){
   }
 }
 
+/* ---------- Persönliche Auftragsstichprobe ---------- */
+let ANALYSE_NR = 0;
+let ANALYSE_STAND = {requestId:null,laeuft:false,antwort:null,hinweis:""};
+function analyseZuruecksetzen(){ ++ANALYSE_NR; ANALYSE_STAND = {requestId:null,laeuft:false,antwort:null,hinweis:""}; }
+function analyseErlaubt(){ return !!(SCHLUESSEL && LAGE && LAGE.auftragsanalyse_erlaubt === true); }
+function analyseKarte(){
+  if (!analyseErlaubt()) return "";
+  const s = ANALYSE_STAND, r = s.antwort, b = r && r.befund;
+  const ok = b && b.analyseErgebnis === "NACHGEWIESEN";
+  let h = '<div class="ab analyse" aria-label="Persönliche Auftragsstichprobe"><h2>Aufträge prüfen</h2>';
+  h += '<div class="analyse-stufe"><h3>1. Stichprobe</h3><p class="klein leise">Begrenzte Statusprüfung deiner Aufträge. Geschäftsaufträge werden nicht geändert.</p>';
+  h += '<button class="k" type="button" data-analyse="neu"' + (s.laeuft ? ' disabled' : '') + '>Neue Stichprobe prüfen</button></div>';
+  h += '<div class="analyse-stufe"><h3>2. Quellenstand</h3><p class="klein">' + (b && b.nachweis ? 'Gelesen am ' + esc(fZeit(b.nachweis.quelleGelesenAm)) + ' (Wien).' : 'Noch kein bestätigter Quellenzeitpunkt.') + '</p>';
+  if (r) h += '<p class="klein leise">Eigener Analysebericht gespeichert. Kennung ' + esc(r.analyse_id) + '.</p>';
+  h += '</div><div class="analyse-stufe"><h3>3. Prüfergebnis</h3><p class="meldung ' + (ok ? 'gut' : '') + '" role="status">' +
+    (s.laeuft ? 'Die Stichprobe wird geprüft.' : b ? (ok ? 'Analysebericht geprüft.' : 'Prüfung offen.') : esc(s.hinweis || 'Noch keine Prüfung angefordert.')) + '</p>';
+  h += '<p class="klein leise">Nur eine Stichprobe. Keine Gesamtinventur und keine Freigabe einzelner Geschäftsfälle.</p></div>';
+  h += '<div class="analyse-stufe"><h3>4. Nächster Schritt</h3>';
+  if (b) h += '<p class="klein">' + esc(b.naechsterSchritt) + '</p>';
+  else h += '<p class="klein">' + esc(s.requestId ? 'Bei unklarer Antwort dieselbe Prüfung wiederholen.' : 'Die Stichprobe ausdrücklich starten.') + '</p>';
+  if (s.requestId) h += '<button class="k klein" type="button" data-analyse="wiederholen"' + (s.laeuft ? ' disabled' : '') + '>Dieselbe Prüfung wiederholen</button>';
+  if (ok) h += '<p><button class="k klein" type="button" data-analyse="download">Geprüfte Vorschau herunterladen</button></p><p class="klein leise">Separate Datei für das Steuerpult. Ersetzt keinen Gesamtstand.</p>';
+  return h + '</div></div>';
+}
+function analyseZeichnen(){ const el = $("analyseBereich"); if (el) el.innerHTML = analyseKarte(); }
+function analyseAntwortGueltig(r, requestId){
+  if (!r || r.ok !== true || r.request_id !== requestId || r.berichtGespeichert !== true
+      || typeof r.analyse_id !== 'string' || !/^[1-9][0-9]{0,18}$/.test(r.analyse_id)
+      || BigInt(r.analyse_id) > 9223372036854775807n) return false;
+  const b = r.befund, d = r.dashboard;
+  if (!b || b.auftragId !== r.analyse_id || b.umfang !== 'STICHPROBE' || b.gesamtbestandGeprueft !== false
+      || b.geschaeftsfaelleFreigegeben !== false || b.produktiveWirkung !== false || typeof b.naechsterSchritt !== 'string'
+      || !d || d.schema_version !== 1 || d.complete !== false || d.generated_at !== b.geprueftAm
+      || typeof d.coverage !== 'string' || !['campaigns','costs','metrics','cases','runs','documents'].every(k=>Array.isArray(d[k]))) return false;
+  if (b.analyseErgebnis === 'NACHGEWIESEN') return b.grund === 'ANALYSEBERICHT_NACHGEWIESEN'
+    && b.nachweis && b.nachweis.referenz === 'analyse-' + r.analyse_id && /^[a-f0-9]{64}$/.test(b.nachweis.sha256)
+    && typeof b.nachweis.quelleGelesenAm === 'string' && Number.isFinite(Date.parse(b.nachweis.quelleGelesenAm));
+  return ['OFFEN','NICHT_PRUEFBAR'].includes(b.analyseErgebnis) && b.nachweis === null
+    && ['QUELLE_UNGUELTIG','QUELLE_VERALTET','QUELLZEIT_UNPLAUSIBEL','ERGEBNIS_FEHLT','LESEN_FEHLGESCHLAGEN',
+      'LESEZEIT_UEBERSCHRITTEN','ERGEBNIS_ZU_GROSS','ERGEBNIS_UNGUELTIG','ERGEBNIS_ABWEICHEND'].includes(b.grund);
+}
+async function analyseKlick(tu){
+  if (!analyseErlaubt() || ANALYSE_STAND.laeuft) return;
+  if (tu === 'download'){
+    const s = ANALYSE_STAND, r = s.antwort;
+    if (!analyseAntwortGueltig(r,s.requestId) || r.befund.analyseErgebnis !== 'NACHGEWIESEN') return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(r.dashboard,null,2)+'\n'],{type:'application/json'}));
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'auftragsanalyse-' + r.analyse_id + '-' + s.requestId + '.json';
+    document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); return;
+  }
+  if (!['neu','wiederholen'].includes(tu) || (tu === 'wiederholen' && !ANALYSE_STAND.requestId)) return;
+  if (tu === 'neu'){
+    analyseZuruecksetzen();
+    try { ANALYSE_STAND.requestId = crypto.randomUUID(); }
+    catch { ANALYSE_STAND.hinweis = 'Die sichere Anfragekennung fehlt. Bitte die Anwendung aktualisieren.'; analyseZeichnen(); return; }
+  }
+  const s = ANALYSE_STAND, nr = ++ANALYSE_NR, key = SCHLUESSEL;
+  const gleicheAnfrage = () => nr === ANALYSE_NR && key === SCHLUESSEL;
+  const gilt = () => gleicheAnfrage() && analyseErlaubt();
+  s.laeuft = true; s.antwort = null; s.hinweis = ''; analyseZeichnen();
+  try{
+    const r = await api('auftragsanalyse',{request_id:s.requestId});
+    if (!gilt()) return;
+    if (analyseAntwortGueltig(r,s.requestId)) s.antwort = r;
+    else s.hinweis = r && r.ok === false && typeof r.fehler === 'string' ? r.fehler : 'Die Antwort ist nicht eindeutig bestätigt. Dieselbe Prüfung wiederholen.';
+  }catch{
+    if (gilt()) s.hinweis = 'Keine bestätigte Antwort. Dieselbe Prüfung wiederholen.';
+  }finally{
+    // Ein Auswahlwechsel nimmt LAGE vorübergehend weg. Antwort dann nicht
+    // anzeigen, aber dieselbe Anfrage abschließen und ihre UUID erhalten.
+    if (gleicheAnfrage()){
+      s.laeuft = false;
+      if (!s.antwort && !s.hinweis) s.hinweis = 'Keine bestätigte Antwort. Dieselbe Prüfung wiederholen.';
+      analyseZeichnen();
+    }
+  }
+}
+
 /* ---------- Handeln ---------- */
 function ms(id, text, art){ const m = $(id); if (m){ m.className = "meldung " + (art || ""); m.textContent = text; } }
 function binden(){
@@ -552,6 +635,7 @@ async function befehl(text, msId, danach){
 async function klick(e){
   const b = e.target.closest("button, a[data-anh]"); if (!b) return;
   const L = LAGE || {};
+  if (b.dataset.analyse){ await analyseKlick(b.dataset.analyse); return; }
   if (b.dataset.ablage || b.dataset.ablageGrund){ await ablageKlick(b.dataset.ablage, b.dataset.ablageGrund); return; }
   if (b.dataset.reiter){ REITER = b.dataset.reiter; document.querySelector(".raster").dataset.reiter = REITER; document.querySelectorAll(".reiter button").forEach(x => x.setAttribute("aria-selected", x === b)); window.scrollTo(0, 0); return; }
   if (b.dataset.auf){ ["handAendern", "handSpaeter"].forEach(id => { const x = $(id); if (x) x.hidden = !(id === "hand" + (b.dataset.auf === "aendern" ? "Aendern" : "Spaeter") && x.hidden); }); return; }
