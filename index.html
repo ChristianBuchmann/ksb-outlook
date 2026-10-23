@@ -149,6 +149,8 @@ details.auf > summary::-webkit-details-marker{display:none}
 details.auf > summary::before{content:"+ ";}
 details.auf[open] > summary::before{content:"− ";}
 .text-entwurf{font:14px/1.5 var(--lese);white-space:pre-wrap;background:var(--flaeche);border:1px solid var(--linie);border-radius:var(--r);padding:10px 12px;max-height:340px;overflow:auto}
+.ablage-stufe{border:1px solid var(--linie);border-radius:var(--r);padding:9px 10px;margin:8px 0}
+.ablage-stufe h3{font-size:14px;margin:0 0 6px}.ablage-stufe p{margin:5px 0}.ablage-halt{padding-left:18px;margin:6px 0;color:var(--rot);font-size:13px}.ablage button[aria-pressed="true"]{border-color:var(--wein);background:var(--weinhell)}
 .anmeldung{max-width:440px;margin:40px auto;padding:0 18px}
 .anmeldung h1{font:600 22px/1.3 var(--lese);margin:0 0 8px}
 </style>
@@ -191,6 +193,7 @@ async function api(aufruf, args){
   return j;
 }
 function zeigeAnmeldung(hinweis){
+  ablageZuruecksetzen();
   $("app").innerHTML = '<div class="anmeldung"><h1>KSB Assistent</h1><p class="leise">Einmal deinen persönlichen Schlüssel eingeben. Outlook merkt ihn sich für alle deine Rechner.</p>' +
     (hinweis ? '<p class="meldung krit">' + esc(hinweis) + "</p>" : "") +
     '<form id="anm"><label class="feld" for="kf">Schlüssel</label><input type="text" id="kf" autocomplete="off" spellcheck="false"><div class="zeile" style="margin-top:10px"><button class="k haupt" type="submit">Anmelden</button></div><div class="meldung" id="anmMs"></div></form></div>';
@@ -227,6 +230,7 @@ function kontextLesen(){
 /* ---------- Laden ---------- */
 async function auswahlLesen(){
   const nr = ++AUSWAHL_NR;
+  ablageZuruecksetzen();
   ++LADEN_NR;
   KTX = null; LAGE = null; REITER = "1"; offeneFragen.clear();
   $("app").innerHTML = '<div class="leer"><span class="warte">Ich lese die neue Auswahl.</span></div>';
@@ -296,7 +300,7 @@ function zeichnen(){
 }
 
 function spalteEins(L){
-  let h = "";
+  let h = '<div id="ablageBereich">' + ablageKarte() + '</div>';
   const mi = L.mitte || {}, e = L.entwurf, a = L.ausgang;
   // Kurzfassung oben, als Lesetext
   if (mi.kurz) h += '<div class="ab"><p class="lesen gross">' + esc(ohneStrich(mi.kurz)) + "</p>" + (mi.kurz_aktuell === false ? '<div class="zeile"><span class="klein leise">Seit der Kurzfassung kam noch eine Mail.</span><button class="k klein" type="button" data-tu="kurz">Neu fassen</button></div>' : "") + "</div>";
@@ -456,11 +460,84 @@ function spalteDrei(L){
 const groesse = b => { b = Number(b || 0); return b > 1e6 ? (b / 1e6).toLocaleString("de-AT", {maximumFractionDigits: 1}) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB"; };
 const geld = (v, w) => v == null ? "" : Number(v).toLocaleString("de-AT", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " " + (w || "EUR");
 
+/* ---------- Konkrete Ablage ---------- */
+let ABLAGE_NR = 0;
+let ABLAGE_STAND = {grund:"ERLEDIGT",phase:"START",vorschau:null,hinweis:"",laeuft:false};
+function ablageZuruecksetzen(){ ++ABLAGE_NR; ABLAGE_STAND = {grund:"ERLEDIGT",phase:"START",vorschau:null,hinweis:"",laeuft:false}; }
+function ablageErlaubt(){ return !!(SCHLUESSEL && KTX && KTX.graph && KTX.modus === "lesen" && LAGE && LAGE.ablage_erlaubt === true && LAGE.ist_entwurf !== true); }
+function ablageKarte(){
+  if (!ablageErlaubt()) return "";
+  const s = ABLAGE_STAND, v = s.vorschau, sperre = s.laeuft || s.phase === "UNGEKLAERT" || s.phase === "BESTAETIGT";
+  let h = '<div class="ab ablage" aria-label="Ausgewählte Mail ablegen"><h2>Mail ablegen</h2>';
+  h += '<div class="ablage-stufe"><h3>1. Grund</h3><div class="zeile">' + [["ERLEDIGT","Erledigt"],["BEANTWORTET","Beantwortet"],["UEBERHOLT","Überholt"]].map(([k,t]) => '<button class="k klein" type="button" data-ablage-grund="' + k + '" aria-pressed="' + (s.grund === k) + '"' + (sperre ? ' disabled' : '') + '>' + t + '</button>').join("") + '</div></div>';
+  h += '<div class="ablage-stufe"><h3>2. Vorschau</h3><p class="klein leise">Ausgewählte Mail und Ziel prüfen.</p>';
+  if (v) h += '<dl class="fakten"><dt>Mail</dt><dd>' + esc(v.betreff) + '</dd><dt>Ziel</dt><dd>' + esc(v.ziel) + '</dd></dl>';
+  if (s.phase === "HALT") h += '<ul class="ablage-halt">' + (s.gruende || []).map(g => '<li>' + esc(g) + '</li>').join("") + '</ul>';
+  h += '<button class="k klein" type="button" data-ablage="vorschau"' + (sperre ? ' disabled' : '') + '>' + (s.laeuft && s.phase === "PRUEFEN" ? 'Wird geprüft.' : 'Vorschau prüfen') + '</button></div>';
+  h += '<div class="ablage-stufe"><h3>3. Ablage</h3>';
+  if (s.phase === "BESTAETIGT") h += '<p class="meldung gut" role="status">Ablage bestätigt.</p>';
+  else if (s.phase === "UNGEKLAERT") h += '<p class="meldung krit" role="status">' + esc(s.hinweis || "Ablage nicht bestätigt.") + '</p><button class="k" type="button" data-ablage="nachlesen"' + (s.laeuft ? ' disabled' : '') + '>Ergebnis nachlesen</button>';
+  else h += '<button class="k haupt" type="button" data-ablage="ausfuehren"' + (s.phase === "BEREIT" && !s.laeuft ? '' : ' disabled') + '>Jetzt ablegen</button>' + (s.hinweis ? '<p class="meldung krit" role="status">' + esc(s.hinweis) + '</p>' : '<p class="klein leise">Erst nach der Vorschau ausdrücklich auslösen.</p>');
+  return h + '</div></div>';
+}
+function ablageZeichnen(){ const el = $("ablageBereich"); if (el) el.innerHTML = ablageKarte(); }
+async function ablageKlick(tu, grund){
+  if (!ablageErlaubt() || ABLAGE_STAND.laeuft) return;
+  let s = ABLAGE_STAND;
+  if (grund){
+    if (!["ERLEDIGT","BEANTWORTET","UEBERHOLT"].includes(grund) || ["UNGEKLAERT","BESTAETIGT"].includes(s.phase)) return;
+    ablageZuruecksetzen(); ABLAGE_STAND.grund = grund; ablageZeichnen(); return;
+  }
+  if (!["vorschau","ausfuehren","nachlesen"].includes(tu)) return;
+  if (tu === "vorschau" && ["UNGEKLAERT","BESTAETIGT"].includes(s.phase)) return;
+  if (tu === "ausfuehren"){
+    if (s.phase !== "BEREIT" || !s.vorschau) return;
+    const bis = Date.parse(s.vorschau.gueltig_bis);
+    if (!Number.isFinite(bis) || bis <= Date.now()){
+      const g = s.grund; ablageZuruecksetzen(); ABLAGE_STAND.grund = g; ABLAGE_STAND.hinweis = "Die Vorschau ist abgelaufen. Bitte neu prüfen."; ablageZeichnen(); return;
+    }
+  }
+  if (tu === "nachlesen" && (s.phase !== "UNGEKLAERT" || !s.vorschau)) return;
+  const nr = ++ABLAGE_NR, mid = KTX.graph, key = SCHLUESSEL;
+  const gilt = () => nr === ABLAGE_NR && SCHLUESSEL === key && KTX && KTX.graph === mid && ablageErlaubt();
+  s.laeuft = true;
+  if (tu === "vorschau"){ s.phase = "PRUEFEN"; s.vorschau = null; s.hinweis = ""; }
+  ablageZeichnen();
+  try{
+    const args = tu === "vorschau" ? {id:mid,grund:s.grund} : {id:mid,token:s.vorschau.token};
+    const r = await api(tu === "vorschau" ? "ablage_vorschau" : tu === "nachlesen" ? "ablage_nachlesen" : "ablage_ausfuehren", args);
+    if (!gilt()) return;
+    if (tu === "vorschau"){
+      if (r && r.ok === true && typeof r.betreff === "string" && typeof r.ziel === "string"){
+        s.vorschau = {betreff:r.betreff,ziel:r.ziel};
+        if (r.bereit === true && /^[a-f0-9]{64}$/.test(r.token || "") && Number.isFinite(Date.parse(r.gueltig_bis))){
+          if (Date.parse(r.gueltig_bis) <= Date.now()){ s.phase = "FEHLER"; s.hinweis = "Die Vorschau ist abgelaufen. Bitte neu prüfen."; }
+          else { s.phase = "BEREIT"; s.vorschau.token = r.token; s.vorschau.gueltig_bis = r.gueltig_bis; }
+        }else if (r.bereit === false && Array.isArray(r.gruende) && r.gruende.length && r.gruende.every(g => typeof g === "string")){
+          s.phase = "HALT"; s.gruende = r.gruende; s.hinweis = "Offene Punkte zuerst klären.";
+        }else { s.phase = "FEHLER"; s.hinweis = "Vorschau nicht bestätigt. Bitte erneut prüfen."; }
+      }else { s.phase = "FEHLER"; s.hinweis = r && r.fehler || "Vorschau nicht bestätigt. Bitte erneut prüfen."; }
+    }else if (r && r.ok === true && r.status === "BESTAETIGT"){
+      s.phase = "BESTAETIGT"; delete s.vorschau.token;
+    }else if (tu === "nachlesen" && r && r.ok === true && r.status === "NICHT_AUSGELOEST"){
+      // Eine erste Anfrage kann noch im Claim warten. Token und Nachleseweg
+      // erhalten; der aktuelle Lesestand ist keine endgültige Nichtausführung.
+      s.phase = "UNGEKLAERT"; s.hinweis = "Noch keine Auslösung bestätigt. Bitte das Ergebnis erneut nachlesen.";
+    }else { s.phase = "UNGEKLAERT"; s.hinweis = r && r.fehler || "Ablage nicht bestätigt. Bitte das Ergebnis nachlesen."; }
+  }catch{
+    if (!gilt()) return;
+    s.phase = tu === "vorschau" ? "FEHLER" : "UNGEKLAERT";
+    s.hinweis = tu === "vorschau" ? "Vorschau nicht geladen. Bitte erneut prüfen." : "Ablage nicht bestätigt. Bitte das Ergebnis nachlesen.";
+  }finally{
+    if (gilt()){ ABLAGE_STAND.laeuft = false; ablageZeichnen(); }
+  }
+}
+
 /* ---------- Handeln ---------- */
 function ms(id, text, art){ const m = $(id); if (m){ m.className = "meldung " + (art || ""); m.textContent = text; } }
 function binden(){
   const g = $("kGross"); if (g) g.onclick = grossOeffnen;
-  $("kNeu").onclick = () => { LAGE = null; laden(); };
+  $("kNeu").onclick = () => { ablageZuruecksetzen(); LAGE = null; laden(); };
   $("befehlForm").addEventListener("submit", async e => { e.preventDefault(); const t = $("befehlText").value.trim(); if (!t) return; await befehl(t, "befehlMs", () => { $("befehlText").value = ""; }); });
   $("befehlText").addEventListener("input", e => { e.target.style.height = "40px"; e.target.style.height = Math.min(200, e.target.scrollHeight) + "px"; });
 }
@@ -475,6 +552,7 @@ async function befehl(text, msId, danach){
 async function klick(e){
   const b = e.target.closest("button, a[data-anh]"); if (!b) return;
   const L = LAGE || {};
+  if (b.dataset.ablage || b.dataset.ablageGrund){ await ablageKlick(b.dataset.ablage, b.dataset.ablageGrund); return; }
   if (b.dataset.reiter){ REITER = b.dataset.reiter; document.querySelector(".raster").dataset.reiter = REITER; document.querySelectorAll(".reiter button").forEach(x => x.setAttribute("aria-selected", x === b)); window.scrollTo(0, 0); return; }
   if (b.dataset.auf){ ["handAendern", "handSpaeter"].forEach(id => { const x = $(id); if (x) x.hidden = !(id === "hand" + (b.dataset.auf === "aendern" ? "Aendern" : "Spaeter") && x.hidden); }); return; }
   if (b.dataset.hand){
@@ -638,7 +716,7 @@ async function start(){
   if (GROSS && !TEST){ // im großen Fenster kommt alles vom Seitenfenster
     $("app").innerHTML = '<div class="leer"><span class="warte">Verbinde mit Outlook.</span></div>';
     try{
-      Office.context.ui.addHandlerAsync(Office.EventType.DialogParentMessageReceived, ev => { try{ const d = JSON.parse(ev.message); SCHLUESSEL = d.k; KTX = d.ktx; LAGE = null; laden(); }catch(e){} });
+      Office.context.ui.addHandlerAsync(Office.EventType.DialogParentMessageReceived, ev => { try{ const d = JSON.parse(ev.message); ablageZuruecksetzen(); SCHLUESSEL = d.k; KTX = d.ktx; LAGE = null; laden(); }catch(e){} });
       Office.context.ui.messageParent("bereit");
     }catch(e){ $("app").innerHTML = '<div class="leer">Das große Fenster geht nur aus Outlook heraus.</div>'; }
     return;
