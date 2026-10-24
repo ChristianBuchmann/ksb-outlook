@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://gjbvlrztbejymrqctopj.supabase.co; img-src 'self'; form-action 'none'; base-uri 'none'">
+<title>Ablage freigeben</title>
+<style>
+  :root { --text:#2B2F33; --leise:#6B6F73; --rot:#8B1E2B; --linie:#D8D2D2; --grund:#FAF8F7; --karte:#FFFFFF; --gut:#2E6B3A; }
+  @media (prefers-color-scheme: dark) { :root { --text:#ECE8E6; --leise:#A9A4A1; --rot:#E08A93; --linie:#3A3534; --grund:#1B1918; --karte:#242120; --gut:#8FD19E; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--grund); color:var(--text); font:16px/1.45 Aptos, Calibri, -apple-system, "Segoe UI", Arial, sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:20px 16px 48px; }
+  h1 { font:600 1.35rem/1.25 Cambria, Georgia, serif; color:var(--rot); margin:0 0 4px; }
+  .leise { color:var(--leise); font-size:.92rem; }
+  .karte { background:var(--karte); border:1px solid var(--linie); border-radius:10px; padding:14px 16px; margin:14px 0; }
+  ul.zahlen { list-style:none; padding:0; margin:0; }
+  ul.zahlen li { padding:4px 0; }
+  ul.zahlen b { display:inline-block; min-width:2.2em; }
+  .eintrag { padding:10px 0; border-top:1px solid var(--linie); }
+  .eintrag:first-child { border-top:0; }
+  .betreff { font-weight:600; overflow-wrap:anywhere; }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input { width:100%; font-size:1.3rem; letter-spacing:.3em; padding:10px 12px; border:1px solid var(--linie); border-radius:8px; background:var(--grund); color:var(--text); }
+  button { width:100%; margin-top:12px; padding:14px; font-size:1.05rem; font-weight:600; border:0; border-radius:8px; background:var(--rot); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  .meldung { font-weight:600; }
+  .gut { color:var(--gut); }
+  .schlecht { color:var(--rot); }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titel">Ablage freigeben</h1>
+  <div class="leise" id="unter">Wird geladen.</div>
+  <div id="inhalt"></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/mail-paket';
+  var paket = Number(new URLSearchParams(location.search).get('p'));
+  var token = (location.hash.match(/t=([a-f0-9]{64})/) || [])[1] || '';
+  var inhalt = document.getElementById('inhalt');
+  var unter = document.getElementById('unter');
+
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function datum(iso) {
+    if (!iso) return '';
+    try { return new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)); }
+    catch (e) { return String(iso); }
+  }
+  function rufen(body) {
+    return fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store', referrerPolicy: 'no-referrer' })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, grund: 'Antwort nicht lesbar' }; }); });
+  }
+  function fehler(text) { inhalt.textContent = ''; var k = el('div', 'karte'); k.appendChild(el('div', 'meldung schlecht', text)); inhalt.appendChild(k); }
+
+  if (!paket || !token) { unter.textContent = ''; fehler('Der Link ist unvollständig. Bitte den Link aus der Mail ganz öffnen.'); return; }
+
+  rufen({ aktion: 'zeigen', paket: paket, token: token }).then(function (d) {
+    if (!d.ok) { unter.textContent = ''; fehler(d.grund || 'Link ungültig'); return; }
+    document.getElementById('titel').textContent = 'Paket ' + d.paket + ': ' + (d.titel || '');
+    if (d.status !== 'ANGEKUENDIGT') {
+      unter.textContent = '';
+      var text = d.status === 'AUSGEFUEHRT' ? 'Dieses Paket ist schon ausgeführt.'
+        : d.status === 'TEILWEISE' ? 'Dieses Paket ist nur teilweise ausgeführt. ChatGPT sieht das Ergebnis und meldet sich.'
+        : d.status === 'VERFALLEN' ? 'Dieses Paket ist verfallen. Es wurde nichts bewegt.'
+        : 'Dieses Paket ist gerade in Arbeit.';
+      fehler(text);
+      if (d.gruende && d.gruende.length) { var k = el('div', 'karte'); d.gruende.slice(0, 10).forEach(function (g) { k.appendChild(el('div', 'leise', g)); }); inhalt.appendChild(k); }
+      return;
+    }
+    unter.textContent = 'Der Link gilt bis ' + datum(d.gueltig_bis) + '. Ohne deine Freigabe passiert nichts.';
+    inhalt.textContent = '';
+
+    var k1 = el('div', 'karte'); var ul = el('ul', 'zahlen');
+    Object.keys(d.zahlen || {}).forEach(function (a) { var li = el('li'); li.appendChild(el('b', null, String(d.zahlen[a]))); li.appendChild(document.createTextNode(a)); ul.appendChild(li); });
+    k1.appendChild(ul); inhalt.appendChild(k1);
+
+    var k2 = el('div', 'karte');
+    (d.eintraege || []).forEach(function (x) {
+      var e = el('div', 'eintrag');
+      e.appendChild(el('div', 'betreff', x.betreff || '(ohne Betreff)'));
+      e.appendChild(el('div', 'leise', [x.von || 'ohne Absender', x.datum || '', 'liegt in ' + (x.ordner || '?')].filter(Boolean).join(' · ')));
+      e.appendChild(el('div', null, x.aktion + (x.faellig ? ' (fällig ' + x.faellig + ')' : '') + (x.ziel && x.aktion.indexOf('Fahne') < 0 ? ': ' + x.ziel : '')));
+      k2.appendChild(e);
+    });
+    inhalt.appendChild(k2);
+
+    var k3 = el('div', 'karte');
+    var lab = el('label', null, 'Deine PIN'); lab.htmlFor = 'pin';
+    var pin = el('input'); pin.id = 'pin'; pin.type = 'password'; pin.inputMode = 'numeric'; pin.autocomplete = 'off'; pin.maxLength = 12;
+    var knopf = el('button', null, 'Freigeben'); var antwort = el('div', 'meldung');
+    knopf.addEventListener('click', function () {
+      if (!/^[0-9]{6,12}$/.test(pin.value)) { antwort.className = 'meldung schlecht'; antwort.textContent = 'Bitte die PIN mit 6 bis 12 Ziffern eingeben.'; return; }
+      knopf.disabled = true; knopf.textContent = 'Wird ausgeführt, bitte warten'; antwort.textContent = '';
+      rufen({ aktion: 'freigeben', paket: paket, token: token, pin: pin.value }).then(function (r) {
+        pin.value = '';
+        if (r.ok) {
+          antwort.className = 'meldung gut';
+          antwort.textContent = 'Erledigt: ' + r.erledigt + ' von ' + r.gesamt + ' Mails.' + (r.fehler ? ' ' + r.fehler + ' gingen nicht, ChatGPT sieht das und meldet sich.' : '');
+          knopf.textContent = 'Fertig';
+        } else {
+          antwort.className = 'meldung schlecht';
+          antwort.textContent = r.grund || 'Nicht ausgeführt.';
+          if (r.abweichungen && r.abweichungen.length) antwort.textContent += ' ' + r.abweichungen.join(' · ');
+          var nochmal = r.grund === 'PIN falsch' || /belegt/.test(r.grund || '');
+          knopf.disabled = !nochmal; knopf.textContent = nochmal ? 'Freigeben' : 'Nicht ausgeführt';
+        }
+      }).catch(function () { antwort.className = 'meldung schlecht'; antwort.textContent = 'Keine Verbindung. Bitte die Seite neu laden und den Stand ansehen, bevor du noch einmal drückst.'; knopf.textContent = 'Unklar'; });
+    });
+    k3.appendChild(lab); k3.appendChild(pin); k3.appendChild(knopf); k3.appendChild(antwort);
+    inhalt.appendChild(k3);
+  }).catch(function () { unter.textContent = ''; fehler('Keine Verbindung zum Server.'); });
+})();
+</script>
+</body>
+</html>
