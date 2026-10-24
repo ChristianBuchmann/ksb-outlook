@@ -28,6 +28,15 @@
   button:disabled { opacity:.5; cursor:default; }
   .meldung { font-weight:600; }
   .gut { color:var(--gut); }
+  .vorschau { color:var(--leise); font-size:.9rem; margin:4px 0; overflow-wrap:anywhere; }
+  .warum { margin:6px 0; padding:6px 10px; border-left:3px solid var(--rot); background:var(--grund); font-size:.95rem; }
+  .aktion { font-weight:600; }
+  .zeile { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:6px; }
+  .zeile a { color:var(--rot); }
+  .nein { display:flex; gap:6px; align-items:center; font-size:.95rem; cursor:pointer; }
+  .nein input { width:auto; transform:scale(1.3); }
+  textarea { width:100%; margin-top:6px; font:inherit; padding:8px; border:1px solid var(--linie); border-radius:8px; background:var(--grund); color:var(--text); }
+  .ausgenommen { opacity:.55; }
   .schlecht { color:var(--rot); }
 </style>
 </head>
@@ -81,11 +90,30 @@
     k1.appendChild(ul); inhalt.appendChild(k1);
 
     var k2 = el('div', 'karte');
+    var ausnahmen = {};
+    function knopfText() { var n = Object.keys(ausnahmen).length, m = (d.eintraege || []).length; return n ? 'Freigeben (' + (m - n) + ' von ' + m + ')' : 'Freigeben'; }
     (d.eintraege || []).forEach(function (x) {
       var e = el('div', 'eintrag');
       e.appendChild(el('div', 'betreff', x.betreff || '(ohne Betreff)'));
-      e.appendChild(el('div', 'leise', [x.von || 'ohne Absender', x.datum || '', 'liegt in ' + (x.ordner || '?')].filter(Boolean).join(' · ')));
-      e.appendChild(el('div', null, x.aktion + (x.faellig ? ' (fällig ' + x.faellig + ')' : '') + (x.ziel && x.aktion.indexOf('Fahne') < 0 ? ': ' + x.ziel : '')));
+      var wer = x.von_name ? x.von_name + ' <' + (x.von || '') + '>' : (x.von || 'ohne Absender');
+      e.appendChild(el('div', 'leise', [wer, datum(x.datum), 'liegt in ' + (x.ordner || '?')].filter(Boolean).join(' · ')));
+      if (x.vorschau) e.appendChild(el('div', 'vorschau', x.vorschau));
+      if (x.warum) e.appendChild(el('div', 'warum', 'Warum: ' + x.warum));
+      e.appendChild(el('div', 'aktion', x.aktion + (x.faellig ? ' (fällig ' + x.faellig + ')' : '') + (x.ziel && x.aktion.indexOf('Fahne') < 0 ? ': ' + x.ziel : '')));
+      var zeile = el('div', 'zeile');
+      if (x.link && /^https:\/\/outlook\.(office365|office)\.com\//.test(x.link)) {
+        var a = el('a', null, 'In Outlook öffnen'); a.href = x.link; a.target = '_blank'; a.rel = 'noopener noreferrer'; zeile.appendChild(a);
+      }
+      var nein = el('label', 'nein'); var cb = el('input'); cb.type = 'checkbox';
+      nein.appendChild(cb); nein.appendChild(document.createTextNode('nicht freigeben'));
+      zeile.appendChild(nein); e.appendChild(zeile);
+      var grund = el('textarea'); grund.rows = 2; grund.maxLength = 1000; grund.placeholder = 'Warum nicht? Ein paar Worte helfen ChatGPT beim nächsten Mal.'; grund.hidden = true;
+      e.appendChild(grund);
+      cb.addEventListener('change', function () {
+        if (cb.checked) { ausnahmen[x.urteil_id] = grund; grund.hidden = false; e.classList.add('ausgenommen'); }
+        else { delete ausnahmen[x.urteil_id]; grund.hidden = true; e.classList.remove('ausgenommen'); }
+        knopf.textContent = knopfText();
+      });
       k2.appendChild(e);
     });
     inhalt.appendChild(k2);
@@ -93,22 +121,22 @@
     var k3 = el('div', 'karte');
     var lab = el('label', null, 'Deine PIN'); lab.htmlFor = 'pin';
     var pin = el('input'); pin.id = 'pin'; pin.type = 'password'; pin.inputMode = 'numeric'; pin.autocomplete = 'off'; pin.maxLength = 12;
-    var knopf = el('button', null, 'Freigeben'); var antwort = el('div', 'meldung');
+    var knopf = el('button', null, knopfText()); var antwort = el('div', 'meldung');
     knopf.addEventListener('click', function () {
       if (!/^[0-9]{6,12}$/.test(pin.value)) { antwort.className = 'meldung schlecht'; antwort.textContent = 'Bitte die PIN mit 6 bis 12 Ziffern eingeben.'; return; }
       knopf.disabled = true; knopf.textContent = 'Wird ausgeführt, bitte warten'; antwort.textContent = '';
-      rufen({ aktion: 'freigeben', paket: paket, token: token, pin: pin.value }).then(function (r) {
+      rufen({ aktion: 'freigeben', paket: paket, token: token, pin: pin.value, ausnehmen: Object.keys(ausnahmen).map(function (id) { return { urteil_id: Number(id), anmerkung: ausnahmen[id].value }; }) }).then(function (r) {
         pin.value = '';
         if (r.ok) {
           antwort.className = 'meldung gut';
-          antwort.textContent = 'Erledigt: ' + r.erledigt + ' von ' + r.gesamt + ' Mails.' + (r.fehler ? ' ' + r.fehler + ' gingen nicht, ChatGPT sieht das und meldet sich.' : '');
+          antwort.textContent = 'Erledigt: ' + r.erledigt + ' von ' + r.gesamt + ' Mails.' + (r.ausgenommen ? ' ' + (r.ausgenommen === 1 ? 'Eine Mail bleibt' : r.ausgenommen + ' Mails bleiben') + ' auf deinen Wunsch liegen.' : '') + (r.fehler ? ' ' + r.fehler + ' gingen nicht, ChatGPT sieht das und meldet sich.' : '');
           knopf.textContent = 'Fertig';
         } else {
           antwort.className = 'meldung schlecht';
           antwort.textContent = r.grund || 'Nicht ausgeführt.';
           if (r.abweichungen && r.abweichungen.length) antwort.textContent += ' ' + r.abweichungen.join(' · ');
           var nochmal = r.grund === 'PIN falsch' || /belegt/.test(r.grund || '');
-          knopf.disabled = !nochmal; knopf.textContent = nochmal ? 'Freigeben' : 'Nicht ausgeführt';
+          knopf.disabled = !nochmal; knopf.textContent = nochmal ? knopfText() : 'Nicht ausgeführt';
         }
       }).catch(function () { antwort.className = 'meldung schlecht'; antwort.textContent = 'Keine Verbindung. Bitte die Seite neu laden und den Stand ansehen, bevor du noch einmal drückst.'; knopf.textContent = 'Unklar'; });
     });
