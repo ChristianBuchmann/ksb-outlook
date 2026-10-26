@@ -12,11 +12,11 @@
 <style>
 /* Tourneeplan Hanoi 2026, Wiener KammerOrchester.
    Aufbau nach Standard Tourneebuch Abschnitt 6: Papier, weiße Karten, Cormorant für Überschriften, Source Sans 3 für Text.
-   WKO: keine Bilder, keine Hausfarben, Akzent Anthrazit. Der Reisende kann den Akzent im Farbwähler ändern.
+   WKO: Logo und Hausfarbe (Wiener Blau #10437D, Navy #1A1A37, Sängerknaben-Vorbild Christian 26.10.2026). Der Reisende kann den Akzent im Farbwähler ändern, Grundfarbe bleibt Wiener Blau.
    In dieser Datei stehen keine Tourdaten. Sie kommen erst nach der Anmeldung von der Funktion hanoi-login. */
 :root{
-  --paper:#F7F1E6; --card:#FFFFFF; --ink:#24272B; --grey:#6E6A62; --line:#E6DECF;
-  --accent:#33373D; --on-accent:#FFFFFF; --soft:#EEE7DA;
+  --paper:#F7F1E6; --card:#FFFFFF; --ink:#1A1A37; --grey:#6E6A62; --line:#E6DECF;
+  --accent:#10437D; --on-accent:#FFFFFF; --soft:#EEE7DA;
   --err:#A93226; --ok:#2E6B3A;
   --shadow:0 1px 3px rgba(60,45,25,.09);
   --display:"Cormorant Garamond", Georgia, "Times New Roman", serif;
@@ -26,11 +26,17 @@
 @media (prefers-color-scheme: dark){
   :root{
     --paper:#1A1916; --card:#24221E; --ink:#EEE8DC; --grey:#A7A093; --line:#38342D;
-    --accent:#C9CDD3; --on-accent:#1A1916; --soft:#2D2A25;
+    --accent:#6FA8DC; --on-accent:#1A1916; --soft:#2D2A25;
     --err:#E58C80; --ok:#8CCB97;
     --shadow:0 1px 3px rgba(0,0,0,.35);
     color-scheme:dark;
   }
+}
+.logo{height:52px;width:auto;display:block;margin:0 auto 12px}
+.logo-weiss{display:none}
+@media (prefers-color-scheme: dark){
+  .logo-blau{display:none}
+  .logo-weiss{display:block}
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
@@ -138,6 +144,8 @@ footer.fuss p{margin:0 0 8px}
 <body>
 <div class="wrap">
   <header class="kopf">
+    <img class="logo logo-blau" src="wko-sunburst-blau.png" alt="" width="760" height="421">
+    <img class="logo logo-weiss" src="wko-sunburst-weiss.png" alt="" width="760" height="417">
     <div class="marke">Wiener KammerOrchester</div>
     <h1>Hanoi 2026</h1>
     <div class="landesschrift" lang="vi">Hà Nội</div>
@@ -277,12 +285,12 @@ var TXT = {
 };
 
 var FARBEN = [
-  { name:'Anthrazit', hell:'#33373D', dunkel:'#C9CDD3' },
-  { name:'Weinrot',   hell:'#7A1626', dunkel:'#E39AA4' },
-  { name:'Petrol',    hell:'#1F5F59', dunkel:'#6FCABE' },
-  { name:'Nachtblau', hell:'#23395B', dunkel:'#9CB8E3' },
-  { name:'Olive',     hell:'#55592A', dunkel:'#C6CB8E' },
-  { name:'Aubergine', hell:'#5A2A4E', dunkel:'#D8A6CB' }
+  { name:'Wiener Blau', hell:'#10437D', dunkel:'#6FA8DC' },
+  { name:'Anthrazit',   hell:'#33373D', dunkel:'#C9CDD3' },
+  { name:'Weinrot',     hell:'#7A1626', dunkel:'#E39AA4' },
+  { name:'Petrol',      hell:'#1F5F59', dunkel:'#6FCABE' },
+  { name:'Olive',       hell:'#55592A', dunkel:'#C6CB8E' },
+  { name:'Aubergine',   hell:'#5A2A4E', dunkel:'#D8A6CB' }
 ];
 var REITER = ['tage','programm','fluege','hotels','info','kontakte'];
 
