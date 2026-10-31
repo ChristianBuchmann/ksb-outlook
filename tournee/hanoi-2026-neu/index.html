@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#10437D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hanoi 2026">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Hanoi 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+
+/* Tourneeplan Hanoi 2026, Wiener KammerOrchester.
+   Aufbau nach Standard Tourneebuch Abschnitt 6: Papier, weiße Karten, Cormorant für Überschriften, Source Sans 3 für Text.
+   WKO: Logo und Hausfarbe (Wiener Blau #10437D, Navy #1A1A37, Sängerknaben-Vorbild Christian 26.10.2026). Der Reisende kann den Akzent im Farbwähler ändern, Grundfarbe bleibt Wiener Blau.
+   In dieser Datei stehen keine Tourdaten. Sie kommen erst nach der Anmeldung von der Funktion hanoi-login. */
+:root{
+  --paper:#F7F1E6; --card:#FFFFFF; --ink:#1A1A37; --grey:#6E6A62; --line:#E6DECF;
+  --accent:#10437D; --on-accent:#FFFFFF; --soft:#EEE7DA;
+  --err:#A93226; --ok:#2E6B3A;
+  --shadow:0 1px 3px rgba(60,45,25,.09);
+  --display:"Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --text:"Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#1A1916; --card:#24221E; --ink:#EEE8DC; --grey:#A7A093; --line:#38342D;
+    --accent:#6FA8DC; --on-accent:#1A1916; --soft:#2D2A25;
+    --err:#E58C80; --ok:#8CCB97;
+    --shadow:0 1px 3px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+.logo{height:52px;width:auto;display:block;margin:0 auto 12px}
+.logo-weiss{display:none}
+@media (prefers-color-scheme: dark){
+  .logo-blau{display:none}
+  .logo-weiss{display:block}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.45 var(--text)}
+a{color:var(--accent);font-weight:600;text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
+
+.wrap{max-width:680px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+/* Kopf */
+header.kopf{text-align:center;padding-block:calc(30px + env(safe-area-inset-top, 0px)) 14px}
+.marke{font:700 12px/1 var(--text);letter-spacing:.32em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 54px/1 var(--display);color:var(--accent);margin:10px 0 6px;letter-spacing:.02em}
+.landesschrift{font:600 19px/1.2 var(--display);letter-spacing:.18em;color:var(--grey)}
+.untertitel{font-size:15px;color:var(--grey);margin-top:8px}
+.leiste{display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap}
+.pill{font:700 13px/1 var(--text);min-height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--accent);cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+
+/* Karten, Formular */
+.karte{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:20px}
+.anmeldung{margin-block:14px 28px}
+.anmeldung h2{font:700 26px/1.1 var(--display);color:var(--accent);margin:0 0 6px}
+.anmeldung p{margin:0 0 14px;color:var(--grey);font-size:15.5px}
+label{display:block;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-bottom:6px}
+input{width:100%;font:17px var(--text);padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+input:focus{outline:none;border-color:var(--accent)}
+#inp-code{font-size:26px;letter-spacing:.32em;text-align:center;font-variant-numeric:tabular-nums}
+.knopf{width:100%;font:700 17px var(--text);padding:14px;border-radius:99px;border:0;background:var(--accent);color:var(--on-accent);margin-top:14px;cursor:pointer}
+.knopf:disabled{opacity:.5;cursor:default}
+.nebenlinks{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:15px}
+.textknopf{background:none;border:0;padding:4px 0;font:600 15px var(--text);color:var(--accent);cursor:pointer}
+.meldung{font-size:15px;margin-top:12px;min-height:1.2em}
+.meldung.fehler{color:var(--err)}
+.meldung.gut{color:var(--ok)}
+.hilfe{font-size:14px;color:var(--grey);margin-top:16px;text-align:center}
+
+/* App */
+.wer{display:flex;justify-content:center;font-size:14px;color:var(--grey);margin-bottom:4px}
+.hinweis{background:var(--soft);border-radius:10px;padding:10px 14px;font-size:14.5px;margin:10px 0}
+nav.reiter{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top, 0px)}
+nav.reiter .zeile{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-block:10px}
+nav.reiter .zeile::-webkit-scrollbar{display:none}
+nav.reiter .pill{flex:0 0 auto;font-size:14px}
+section.teil{padding-block:18px 8px}
+h2.abschnitt{font:700 30px/1.1 var(--display);color:var(--accent);text-align:center;margin:4px 0 2px;text-wrap:balance}
+.unterzeile{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);text-align:center;margin-bottom:16px}
+h3{font:700 22px/1.2 var(--display);color:var(--accent);margin:22px 0 8px;text-wrap:balance}
+h3:first-child{margin-top:0}
+p{margin:0 0 10px}
+.grau{color:var(--grey)}
+.klein{font-size:14.5px}
+.liste{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.liste > *{padding:13px 16px;border-top:1px solid var(--line)}
+.liste > *:first-child{border-top:0}
+.marker{display:inline-block;font:700 11px/1 var(--text);letter-spacing:.12em;text-transform:uppercase;color:var(--on-accent);background:var(--accent);border-radius:99px;padding:4px 8px;margin-right:6px;vertical-align:2px}
+
+/* Tage */
+.tage{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px}
+.tage::-webkit-scrollbar{display:none}
+.tag{flex:0 0 auto;width:58px;height:66px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--accent);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:var(--text)}
+.tag .wt{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.tag .zahl{font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.tag .mon{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.tag[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.tag.heute{box-shadow:0 0 0 2px var(--accent) inset}
+.tagkopf{font:700 25px/1.15 var(--display);color:var(--accent);margin:4px 0 10px}
+
+/* Programm */
+.programm{margin-bottom:22px}
+.programm .datum{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey)}
+.programm .titel{font:700 25px/1.15 var(--display);color:var(--accent);margin:2px 0 4px}
+.programm .solisten{font:600 italic 18px/1.3 var(--display);margin-bottom:10px}
+.programm ul{list-style:none;margin:0;padding:0}
+.programm li{padding:8px 0;border-top:1px solid var(--line);font-size:15.5px}
+.programm li:first-child{border-top:0}
+.programm li.pause{text-align:center;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);font-size:13px;padding:12px 0}
+
+/* Flüge */
+.flug{display:grid;grid-template-columns:auto 1fr;column-gap:14px;row-gap:2px;font-variant-numeric:tabular-nums}
+.flug .wann{font-weight:700;white-space:nowrap}
+.flug .nr{font-weight:700;color:var(--accent)}
+.flug .route{grid-column:1 / -1;min-width:0}
+.flug .zeit{grid-column:1 / -1;color:var(--grey);font-size:15px}
+
+/* Kontakte */
+.kontakt .name{font:700 20px/1.2 var(--display)}
+.kontakt .rolle{font-size:14.5px;color:var(--grey);margin-top:2px}
+.kontakt .wege{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:15.5px;font-variant-numeric:tabular-nums}
+.kontakt .wege a{word-break:break-all}
+.orga{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--grey);margin:20px 0 8px}
+.orga:first-child{margin-top:0}
+
+/* Fuß */
+footer.fuss{text-align:center;color:var(--grey);font-size:14px;padding-block:30px calc(30px + env(safe-area-inset-bottom, 0px))}
+footer.fuss p{margin:0 0 8px}
+.farben{display:flex;justify-content:center;gap:10px;margin:12px 0 18px}
+.farbe{width:30px;height:30px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.farbe[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+@media (prefers-reduced-motion: no-preference){ html{scroll-behavior:smooth} }
+
+/* App: Anmerkungen, Bearbeiten, Warteschlange */
+.notizen{margin-top:14px}
+.notiz{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:10px 14px;margin-top:8px;border-left:4px solid var(--line)}
+.notiz.alle{border-left-color:var(--accent)}
+.notiz .kopfzeile{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--grey);letter-spacing:.04em}
+.notiz .inhalt{white-space:pre-wrap;margin-top:4px;font-size:15.5px}
+.notiz .warte{color:var(--err);font-weight:700}
+.notiz .aktionen{display:flex;gap:16px;margin-top:4px}
+.zeilen{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.zeilen .pill{font-size:14px}
+textarea{width:100%;min-height:110px;font:16px/1.4 var(--text);padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);resize:vertical}
+textarea:focus{outline:none;border-color:var(--accent)}
+.editor{margin-top:12px}
+.editor .knopf{margin-top:10px}
+.editor .zeile2{display:flex;gap:10px;align-items:center;margin-top:10px;font-size:15px}
+.editor .zeile2 input{width:auto}
+.knopf.zweit{background:var(--card);color:var(--accent);border:1px solid var(--line)}
+.status{position:sticky;bottom:0;z-index:6;background:var(--accent);color:var(--on-accent);text-align:center;font-size:14px;padding:8px 16px calc(8px + env(safe-area-inset-bottom, 0px))}
+.status.warn{background:var(--err)}
+.recht{display:inline-block;font:700 11px/1 var(--text);letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--accent);color:var(--accent);border-radius:99px;padding:3px 7px;margin-left:8px}
+.geaendert{font-size:12.5px;color:var(--err);margin:6px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="kopf">
+    <img class="logo logo-blau" src="wko-sunburst-blau.png" alt="" width="760" height="421">
+    <img class="logo logo-weiss" src="wko-sunburst-weiss.png" alt="" width="760" height="417">
+    <div class="marke">Wiener KammerOrchester</div>
+    <h1>Hanoi 2026</h1>
+    <div class="landesschrift" lang="vi">Hà Nội</div>
+    <div class="untertitel" data-t="untertitel">Tourneeplan</div>
+    <div class="leiste" role="group" aria-label="Sprache">
+      <button class="pill" type="button" data-sprache="de">DE</button>
+      <button class="pill" type="button" data-sprache="en">EN</button>
+      <button class="pill" type="button" data-sprache="vi">VI</button>
+    </div>
+  </header>
+
+  <section class="karte anmeldung" id="schritt-mail" hidden>
+    <h2 data-t="anmeldung">Anmeldung</h2>
+    <p data-t="anmeldungText"></p>
+    <div class="hinweis" id="wartet-login" hidden></div>
+    <form id="form-mail" novalidate>
+      <label for="inp-mail" data-t="mailLabel">E-Mail-Adresse</label>
+      <input type="email" id="inp-mail" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required>
+      <button class="knopf" type="submit" id="btn-mail" data-t="codeAnfordern">Code anfordern</button>
+    </form>
+    <div class="meldung" id="msg-mail" role="status"></div>
+    <div class="hilfe"><span data-t="hilfe">Fragen zur Anmeldung:</span> doris@buchmann.at</div>
+  </section>
+
+  <section class="karte anmeldung" id="schritt-code" hidden>
+    <h2 data-t="anmeldung">Anmeldung</h2>
+    <p id="code-text"></p>
+    <form id="form-code" novalidate>
+      <label for="inp-code" data-t="codeLabel">Code aus der Mail</label>
+      <input type="text" id="inp-code" autocomplete="one-time-code" inputmode="numeric" maxlength="7" required>
+      <button class="knopf" type="submit" id="btn-code" data-t="anmelden">Anmelden</button>
+    </form>
+    <div class="meldung" id="msg-code" role="status"></div>
+    <div class="nebenlinks">
+      <button class="textknopf" type="button" id="btn-neu" data-t="neuerCode">Neuen Code anfordern</button>
+      <button class="textknopf" type="button" id="btn-andere" data-t="andereAdresse">Andere Adresse</button>
+    </div>
+  </section>
+
+  <section class="karte anmeldung" id="laden" hidden>
+    <p id="laden-text" data-t="laden">Der Tourneeplan wird geladen.</p>
+    <button class="knopf" type="button" id="btn-nochmal" data-t="nochmal" hidden>Noch einmal versuchen</button>
+  </section>
+</div>
+
+<div id="app" hidden>
+  <div class="wrap">
+    <div class="wer" id="wer"></div>
+    <div class="hinweis" id="offline" hidden></div>
+  </div>
+  <nav class="reiter" aria-label="Abschnitte">
+    <div class="wrap"><div class="zeile" id="reiter"></div></div>
+  </nav>
+  <div class="wrap">
+    <section class="teil" id="teil-tage" data-reiter="tage"></section>
+    <section class="teil" id="teil-notizen" data-reiter="notizen" hidden></section>
+    <section class="teil" id="teil-programm" data-reiter="programm" hidden></section>
+    <section class="teil" id="teil-fluege" data-reiter="fluege" hidden></section>
+    <section class="teil" id="teil-hotels" data-reiter="hotels" hidden></section>
+    <section class="teil" id="teil-info" data-reiter="info" hidden></section>
+    <section class="teil" id="teil-kontakte" data-reiter="kontakte" hidden></section>
+  </div>
+</div>
+
+<footer class="fuss wrap">
+  <div id="fuss-app" hidden>
+    <div class="farben" id="farben" role="group" aria-label="Farbe"></div>
+    <p data-t="vorbehalt"></p>
+    <p id="vi-hinweis" class="klein" hidden data-t="viHinweis"></p>
+    <p><button class="textknopf" type="button" id="btn-ab" data-t="abmelden">Abmelden</button></p>
+  </div>
+  <p data-t="herausgeber"></p>
+</footer>
+<div class="status" id="status" hidden></div>
+
+<script>
+(function(){
+'use strict';
+
+/* In dieser Datei stehen keine Tourdaten. Sie kommen nach der Anmeldung von der Funktion hanoi-app
+   und liegen danach auf dem Gerät, damit der Plan ohne Netz geht. Anmerkungen, die ohne Netz entstehen,
+   warten im Gerät und gehen von selbst ab, sobald wieder Verbindung besteht. */
+var FN = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/hanoi-app';
+var SEITE = location.origin + location.pathname.replace(/index\.html$/, '');
+var K = { token:'hanoi_token', mail:'hanoi_email', sprache:'hanoi_lang', farbe:'hanoi_farbe', cache:'hanoi_app_cache', reiter:'hanoi_reiter', ausgang:'hanoi_ausgang' };
+
+var TXT = {
+  de: {
+    untertitel:'Tourneeplan',
+    anmeldung:'Anmeldung', anmeldungText:'Mit der E-Mail-Adresse, die das Orchesterbüro hat. Der Code kommt per Mail.',
+    mailLabel:'E-Mail-Adresse', codeAnfordern:'Code anfordern', codeLabel:'Code aus der Mail', anmelden:'Anmelden',
+    neuerCode:'Neuen Code anfordern', andereAdresse:'Andere Adresse', hilfe:'Fragen zur Anmeldung:',
+    neuGeschickt:'Code angefordert.', laden:'Der Tourneeplan wird geladen.', nochmal:'Noch einmal versuchen',
+    e_EMAIL_UNGUELTIG:'Bitte eine gültige E-Mail-Adresse eingeben.',
+    e_CODE_FALSCH:'Der Code stimmt nicht oder ist abgelaufen.',
+    e_GESPERRT:'Dieser Zugang ist gesperrt. Bitte das Orchesterbüro kontaktieren.',
+    e_EINGABE_FEHLT:'Bitte den sechsstelligen Code aus der Mail eingeben.',
+    e_NETZ:'Keine Verbindung zum Server. Bitte gleich noch einmal versuchen.',
+    e_SERVER:'Beim Server ist etwas schiefgegangen. Bitte gleich noch einmal versuchen.',
+    offline:'Ohne Verbindung. Angezeigt wird der Stand vom {zeit}.',
+    angemeldet:'Angemeldet: {name}', admin:'Ändern',
+    r_tage:'Tagesablauf', r_notizen:'Anmerkungen', r_programm:'Programm', r_fluege:'Flüge', r_hotels:'Hotels', r_info:'Info', r_kontakte:'Kontakte',
+    u_tage:'Antippen wählt den Tag', u_notizen:'Deine und die für alle', u_programm:'Das spielen wir', u_fluege:'Gruppe und Ausnahmen', u_hotels:'Antippen öffnet die Karte', u_info:'Gut zu wissen', u_kontakte:'Zum Antippen',
+    hinflug:'Hinflug', rueckflug:'Rückflug', ausnahmen:'Einzelne Ausnahmen', persoenlich:'Persönlich',
+    spielort:'Spielort', visum:'Visum', essen:'Essen', freiertag:'Freier Tag und Ausflug', veranstalter:'Veranstalter', ablauf:'Konzertablauf',
+    pause:'Pause', keineDaten:'Dazu gibt es noch keine Angaben.',
+    vorbehalt:'Zeiten und Abläufe können sich vor Ort ändern. Es gilt, was die Tourleitung ansagt.',
+    abmelden:'Abmelden', herausgeber:'Herausgeber: Wiener KammerOrchester, Schachnerstraße 27, 1220 Wien',
+    notizNeu:'Anmerkung schreiben', notizTag:'Anmerkung zu diesem Tag', notizAllgemein:'Allgemeine Anmerkung',
+    speichern:'Speichern', abbrechen:'Abbrechen', bearbeiten:'Bearbeiten', loeschen:'Löschen',
+    fuerAlle:'Für alle sichtbar', nurIch:'Nur für mich', vonAllen:'Für alle', eigene:'Nur du siehst das',
+    tagBearbeiten:'Tag ändern', tagNeu:'Tag hinzufügen', tagHilfe:'Eine Zeile je Programmpunkt, Uhrzeit vorne (09:00 Probe).',
+    neuesDatum:'Datum (JJJJ-MM-TT)',
+    wartet:'wartet auf Verbindung', wartetN:'{n} Änderungen warten auf Verbindung und gehen von selbst ab.',
+    gesendet:'Alles übertragen.', keineNotizen:'Noch keine Anmerkungen.',
+    konflikt:'Der Tag {tag} wurde inzwischen von jemand anderem geändert. Deine Fassung ist als private Anmerkung gespeichert.',
+    konfliktNotiz:'Nicht übernommen (Tag inzwischen geändert). Meine Fassung:',
+    neuAnmelden:'Die Anmeldung ist abgelaufen. Deine {n} Anmerkungen bleiben im Gerät und gehen nach der Anmeldung ab.',
+    abmeldenWarte:'Es warten noch {n} Änderungen auf Verbindung. Beim Abmelden gehen sie verloren. Trotzdem abmelden?',
+    allgemein:'Allgemein', viHinweis:''
+  },
+  en: {
+    untertitel:'Tour plan',
+    anmeldung:'Sign in', anmeldungText:'With the email address the orchestra office has on file. The code arrives by email.',
+    mailLabel:'Email address', codeAnfordern:'Send code', codeLabel:'Code from the email', anmelden:'Sign in',
+    neuerCode:'Send a new code', andereAdresse:'Different address', hilfe:'Questions about signing in:',
+    neuGeschickt:'Code requested.', laden:'Loading the tour plan.', nochmal:'Try again',
+    e_EMAIL_UNGUELTIG:'Please enter a valid email address.',
+    e_CODE_FALSCH:'The code is wrong or has expired.',
+    e_GESPERRT:'This access is blocked. Please contact the orchestra office.',
+    e_EINGABE_FEHLT:'Please enter the six-digit code from the email.',
+    e_NETZ:'No connection to the server. Please try again in a moment.',
+    e_SERVER:'Something went wrong on the server. Please try again in a moment.',
+    offline:'No connection. Showing the version from {zeit}.',
+    angemeldet:'Signed in: {name}', admin:'Editor',
+    r_tage:'Schedule', r_notizen:'Notes', r_programm:'Programme', r_fluege:'Flights', r_hotels:'Hotels', r_info:'Info', r_kontakte:'Contacts',
+    u_tage:'Tap to choose the day', u_notizen:'Yours and those for everyone', u_programm:'What we play', u_fluege:'Group and exceptions', u_hotels:'Tap to open the map', u_info:'Good to know', u_kontakte:'Tap to call or write',
+    hinflug:'Outbound', rueckflug:'Return', ausnahmen:'Individual exceptions', persoenlich:'Personal',
+    spielort:'Venue', visum:'Visa', essen:'Meals', freiertag:'Free day and excursion', veranstalter:'Organiser', ablauf:'Run of show',
+    pause:'Interval', keineDaten:'No details yet.',
+    vorbehalt:'Times and arrangements may change on site. What the tour management announces applies.',
+    abmelden:'Sign out', herausgeber:'Published by Wiener KammerOrchester, Schachnerstraße 27, 1220 Vienna, Austria',
+    notizNeu:'Write a note', notizTag:'Note for this day', notizAllgemein:'General note',
+    speichern:'Save', abbrechen:'Cancel', bearbeiten:'Edit', loeschen:'Delete',
+    fuerAlle:'Visible to everyone', nurIch:'Only for me', vonAllen:'For everyone', eigene:'Only you can see this',
+    tagBearbeiten:'Edit day', tagNeu:'Add a day', tagHilfe:'One line per item, time first (09:00 Rehearsal).',
+    neuesDatum:'Date (YYYY-MM-DD)',
+    wartet:'waiting for connection', wartetN:'{n} changes are waiting for a connection and will be sent automatically.',
+    gesendet:'Everything sent.', keineNotizen:'No notes yet.',
+    konflikt:'Day {tag} was changed by someone else in the meantime. Your version was saved as a private note.',
+    konfliktNotiz:'Not applied (day changed in the meantime). My version:',
+    neuAnmelden:'Your sign-in has expired. Your {n} notes stay on this device and will be sent after you sign in.',
+    abmeldenWarte:'{n} changes are still waiting for a connection. Signing out deletes them. Sign out anyway?',
+    allgemein:'General', viHinweis:''
+  },
+  vi: {
+    untertitel:'Lịch trình lưu diễn',
+    anmeldung:'Đăng nhập', anmeldungText:'Dùng địa chỉ email mà văn phòng dàn nhạc đã có. Mã sẽ được gửi qua email.',
+    mailLabel:'Địa chỉ email', codeAnfordern:'Gửi mã', codeLabel:'Mã trong email', anmelden:'Đăng nhập',
+    neuerCode:'Gửi mã mới', andereAdresse:'Địa chỉ khác', hilfe:'Hỏi về đăng nhập:',
+    neuGeschickt:'Đã yêu cầu mã.', laden:'Đang tải lịch trình.', nochmal:'Thử lại',
+    e_EMAIL_UNGUELTIG:'Vui lòng nhập địa chỉ email hợp lệ.',
+    e_CODE_FALSCH:'Mã không đúng hoặc đã hết hạn.',
+    e_GESPERRT:'Tài khoản này đã bị khóa. Vui lòng liên hệ văn phòng dàn nhạc.',
+    e_EINGABE_FEHLT:'Vui lòng nhập mã gồm sáu chữ số trong email.',
+    e_NETZ:'Không kết nối được với máy chủ. Vui lòng thử lại sau.',
+    e_SERVER:'Máy chủ gặp lỗi. Vui lòng thử lại sau.',
+    offline:'Không có kết nối. Đang hiển thị dữ liệu lúc {zeit}.',
+    angemeldet:'Đã đăng nhập: {name}', admin:'Biên tập',
+    r_tage:'Lịch trình', r_notizen:'Ghi chú', r_programm:'Chương trình', r_fluege:'Chuyến bay', r_hotels:'Khách sạn', r_info:'Thông tin', r_kontakte:'Liên hệ',
+    u_tage:'Chạm để chọn ngày', u_notizen:'Của bạn và ghi chú chung', u_programm:'Chương trình biểu diễn', u_fluege:'Đoàn và trường hợp riêng', u_hotels:'Chạm để mở bản đồ', u_info:'Cần biết', u_kontakte:'Chạm để gọi hoặc viết',
+    hinflug:'Chiều đi', rueckflug:'Chiều về', ausnahmen:'Trường hợp riêng', persoenlich:'Cá nhân',
+    spielort:'Địa điểm biểu diễn', visum:'Thị thực', essen:'Ăn uống', freiertag:'Ngày nghỉ và tham quan', veranstalter:'Đơn vị tổ chức', ablauf:'Kịch bản chương trình',
+    pause:'Giải lao', keineDaten:'Chưa có thông tin.',
+    vorbehalt:'Thời gian và lịch trình có thể thay đổi tại chỗ. Theo thông báo của trưởng đoàn.',
+    abmelden:'Đăng xuất', herausgeber:'Phát hành: Wiener KammerOrchester, Schachnerstraße 27, 1220 Wien, Áo',
+    notizNeu:'Viết ghi chú', notizTag:'Ghi chú cho ngày này', notizAllgemein:'Ghi chú chung',
+    speichern:'Lưu', abbrechen:'Hủy', bearbeiten:'Sửa', loeschen:'Xóa',
+    fuerAlle:'Mọi người đều thấy', nurIch:'Chỉ mình tôi', vonAllen:'Cho mọi người', eigene:'Chỉ bạn thấy',
+    tagBearbeiten:'Sửa ngày', tagNeu:'Thêm ngày', tagHilfe:'Mỗi dòng một mục, giờ ở đầu (09:00 Tập).',
+    neuesDatum:'Ngày (NNNN-TT-NN)',
+    wartet:'đang chờ kết nối', wartetN:'{n} thay đổi đang chờ kết nối và sẽ tự động gửi đi.',
+    gesendet:'Đã gửi tất cả.', keineNotizen:'Chưa có ghi chú.',
+    konflikt:'Ngày {tag} đã được người khác sửa. Phiên bản của bạn được lưu thành ghi chú riêng.',
+    konfliktNotiz:'Chưa áp dụng (ngày đã được sửa). Phiên bản của tôi:',
+    neuAnmelden:'Phiên đăng nhập đã hết hạn. {n} ghi chú của bạn vẫn lưu trên máy và sẽ được gửi sau khi đăng nhập.',
+    abmeldenWarte:'Còn {n} thay đổi đang chờ kết nối. Đăng xuất sẽ xóa chúng. Vẫn đăng xuất?',
+    allgemein:'Chung',
+    viHinweis:'Bản tiếng Việt do máy dịch, chưa được kiểm tra. Nội dung chưa có bản dịch được hiển thị bằng tiếng Anh.'
+  }
+};
+
+var FARBEN = [
+  { name:'Wiener Blau', hell:'#10437D', dunkel:'#6FA8DC' },
+  { name:'Anthrazit',   hell:'#33373D', dunkel:'#C9CDD3' },
+  { name:'Weinrot',     hell:'#7A1626', dunkel:'#E39AA4' },
+  { name:'Petrol',      hell:'#1F5F59', dunkel:'#6FCABE' },
+  { name:'Olive',       hell:'#55592A', dunkel:'#C6CB8E' },
+  { name:'Aubergine',   hell:'#5A2A4E', dunkel:'#D8A6CB' }
+];
+var REITER = ['tage','notizen','programm','fluege','hotels','info','kontakte'];
+var SPRACHEN = ['de','en','vi'];
+
+var LANG = 'de', ROH = null, DATEN = null, REISENDER = null, MAIL = '', TAG = null, AKTIV = 'tage', CODE_HINWEIS = null;
+var OFFEN = null; /* gerade offener Editor: {art:'notiz'|'tag', schluessel} */
+
+function lies(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function schreib(k, v){ try{ if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){} }
+function liesJ(k, ersatz){ try{ var v = JSON.parse(lies(k) || 'null'); return v == null ? ersatz : v; }catch(e){ return ersatz; } }
+function $(id){ return document.getElementById(id); }
+function t(k, ersatz){
+  var s = (TXT[LANG] && TXT[LANG][k] != null && TXT[LANG][k] !== '' ? TXT[LANG][k] : null);
+  if (s == null) s = (LANG === 'vi' ? TXT.en[k] : null) || TXT.de[k] || '';
+  if (ersatz) Object.keys(ersatz).forEach(function(n){ s = s.split('{' + n + '}').join(ersatz[n]); });
+  return s;
+}
+function L(v){
+  if (v == null) return '';
+  if (typeof v === 'object' && !Array.isArray(v)) return v[LANG] || (LANG === 'vi' ? v.en : null) || v.de || v.en || '';
+  return String(v);
+}
+function el(tag, attrs){
+  var e = document.createElement(tag);
+  if (attrs) Object.keys(attrs).forEach(function(k){
+    var v = attrs[k];
+    if (v == null || v === false) return;
+    if (k === 'text') e.textContent = v;
+    else if (k === 'class') e.className = v;
+    else if (k.slice(0,2) === 'on') e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  });
+  for (var i = 2; i < arguments.length; i++){
+    var c = arguments[i];
+    if (c == null || c === false) continue;
+    if (Array.isArray(c)) c.forEach(function(x){ if (x != null && x !== false) e.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); });
+    else e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+function locale(){ return LANG === 'en' ? 'en-GB' : LANG === 'vi' ? 'vi-VN' : 'de-AT'; }
+function datum(iso){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function fmt(iso, opts){ var d = datum(iso); return d ? new Intl.DateTimeFormat(locale(), opts).format(d) : (iso || ''); }
+function langesDatum(iso){ return fmt(iso, { weekday:'long', day:'numeric', month:'long', year:'numeric' }); }
+function kurzesDatum(iso){ return fmt(iso, { weekday:'short', day:'numeric', month:'short' }); }
+function zeitText(ms){ return new Intl.DateTimeFormat(locale(), { day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit' }).format(new Date(ms)); }
+function heuteIso(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function karteLink(adresse){ return 'https://maps.apple.com/?q=' + encodeURIComponent(adresse + ', Vietnam'); }
+function telLink(nr){ return 'tel:' + String(nr).replace(/[^\d+]/g, ''); }
+function persoenlich(x){ return x && typeof x === 'object' && x['for'] ? el('span', { class:'marker', text:t('persoenlich') }) : null; }
+function neueId(){
+  var a = new Uint8Array(12);
+  try{ crypto.getRandomValues(a); }catch(e){ for (var i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 256); }
+  return 'g' + Array.prototype.map.call(a, function(x){ return ('0' + x.toString(16)).slice(-2); }).join('');
+}
+function istAdmin(){ return !!(REISENDER && REISENDER.recht === 'admin'); }
+
+/* Server */
+function rufe(body){
+  return fetch(FN, { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(body), cache:'no-store' })
+    .then(function(r){ return r.json().catch(function(){ return { ok:false, status:'SERVER' }; }); },
+          function(){ return { ok:false, status:'NETZ' }; });
+}
+
+/* Warteschlange im Gerät. Jede Anmerkung hat eine eigene Kennung; der Server nimmt sie genau einmal. */
+function ausgang(){ return liesJ(K.ausgang, []); }
+function ausgangSchreiben(a){ schreib(K.ausgang, a.length ? JSON.stringify(a) : null); statusZeigen(); }
+function inAusgang(op){
+  var a = ausgang();
+  if (op.art === 'notiz') a = a.filter(function(x){ return !(x.art === 'notiz' && x.client_id === op.client_id); });
+  if (op.art === 'tag') a = a.filter(function(x){ return !(x.art === 'tag' && x.datum === op.datum); });
+  a.push(op); ausgangSchreiben(a);
+  allesBauen(); abgleichen();
+}
+
+var LAEUFT = false;
+function abgleichen(){
+  var token = lies(K.token);
+  if (LAEUFT || !token) return Promise.resolve();
+  var a = ausgang();
+  if (!a.length) return Promise.resolve();
+  LAEUFT = true;
+  var notizen = a.filter(function(x){ return x.art === 'notiz'; });
+  var tage = a.filter(function(x){ return x.art === 'tag'; });
+  var kette = Promise.resolve(true);
+  /* Tage zuerst, ein Konflikt wird zur privaten Anmerkung, damit nichts verloren geht */
+  tage.forEach(function(op){
+    kette = kette.then(function(weiter){
+      if (!weiter) return false;
+      return rufe({ action:'tag_speichern', token:token, datum:op.datum, activities:op.activities, basis:op.basis }).then(function(j){
+        if (j.status === 'NETZ' || j.status === 'SERVER') return false;
+        if (j.status === 'SESSION_UNGUELTIG'){ sitzungWeg(); return false; }
+        var rest = ausgang().filter(function(x){ return !(x.art === 'tag' && x.datum === op.datum && x.zeit === op.zeit); });
+        if (j.ok){
+          tagLokalSetzen(j.tag, j.basis);
+        } else if (j.status === 'KONFLIKT'){
+          if (j.tag) tagLokalSetzen(j.tag, j.basis);
+          rest.push({ art:'notiz', client_id:neueId(), ziel:'tag:' + op.datum, sichtbar:'privat', zeit:new Date().toISOString(),
+                      text:t('konfliktNotiz') + '\n' + op.activities.join('\n') });
+          meldenStatus(t('konflikt', { tag:kurzesDatum(op.datum) }), true);
+        }
+        ausgangSchreiben(rest);
+        return true;
+      });
+    });
+  });
+  return kette.then(function(weiter){
+    var jetzt = ausgang().filter(function(x){ return x.art === 'notiz'; });
+    if (!weiter || !jetzt.length) return;
+    var ops = jetzt.map(function(x){ return { client_id:x.client_id, ziel:x.ziel, text:x.text, sichtbar:x.sichtbar, geloescht:!!x.geloescht, zeit:x.zeit }; });
+    return rufe({ action:'notizen_sync', token:token, ops:ops }).then(function(j){
+      if (j.status === 'SESSION_UNGUELTIG'){ sitzungWeg(); return; }
+      if (!j.ok) return;
+      var erledigt = {};
+      (j.ergebnisse || []).forEach(function(e){ erledigt[e.client_id] = true; });
+      ausgangSchreiben(ausgang().filter(function(x){
+        return !(x.art === 'notiz' && erledigt[x.client_id] && jetzt.some(function(y){ return y.client_id === x.client_id && y.zeit === x.zeit; }));
+      }));
+      if (ROH){ ROH.notizen = j.notizen || []; cacheSchreiben(); }
+    });
+  }).then(function(){ LAEUFT = false; allesBauen(); if (!ausgang().length && notizen.length + tage.length) meldenStatus(t('gesendet'), false, 2500); },
+          function(){ LAEUFT = false; });
+}
+
+function tagLokalSetzen(tag, basis){
+  if (!ROH || !tag) return;
+  var s = (ROH.content.schedule || []).filter(function(d){ return d.date !== tag.date; });
+  s.push(tag); s.sort(function(a, b){ return a.date < b.date ? -1 : 1; });
+  ROH.content.schedule = s;
+  ROH.tag_basis = ROH.tag_basis || {}; ROH.tag_basis[tag.date] = basis;
+  if (ROH.content_vi && ROH.content_vi.schedule) delete ROH.content_vi.schedule[tag.date];
+  cacheSchreiben(); datenAufbereiten();
+}
+
+/* Status unten */
+var STATUS_TIMER = null;
+function meldenStatus(text, warn, dauer){
+  var s = $('status'); s.textContent = text; s.className = 'status' + (warn ? ' warn' : ''); s.hidden = false;
+  clearTimeout(STATUS_TIMER);
+  STATUS_TIMER = setTimeout(statusZeigen, dauer || 7000);
+}
+function statusZeigen(){
+  var n = ausgang().length, s = $('status');
+  if (!$('app').hidden && n){ s.textContent = t('wartetN', { n:n }); s.className = 'status warn'; s.hidden = false; }
+  else s.hidden = true;
+}
+
+/* Daten */
+function cacheSchreiben(){ if (ROH) schreib(K.cache, JSON.stringify({ zeit:ROH.zeit || Date.now(), roh:ROH, mail:MAIL })); }
+function datenAufbereiten(){
+  if (!ROH) { DATEN = null; return; }
+  var c = JSON.parse(JSON.stringify(ROH.content || {}));
+  if (LANG === 'vi' && ROH.content_vi){
+    Object.keys(ROH.content_vi).forEach(function(k){
+      if (k === 'schedule'){
+        (c.schedule || []).forEach(function(d){ var v = ROH.content_vi.schedule[d.date]; if (v) d.activities = v; });
+      } else c[k] = ROH.content_vi[k];
+    });
+  }
+  /* Tagesänderungen, die noch im Gerät warten, schon zeigen */
+  ausgang().filter(function(x){ return x.art === 'tag'; }).forEach(function(op){
+    var s = (c.schedule || []).filter(function(d){ return d.date !== op.datum; });
+    s.push({ date:op.datum, activities:op.activities, wartet:true });
+    s.sort(function(a, b){ return a.date < b.date ? -1 : 1; });
+    c.schedule = s;
+  });
+  DATEN = c;
+}
+function notizenSicht(){
+  var server = (ROH && ROH.notizen) || [];
+  var warte = ausgang().filter(function(x){ return x.art === 'notiz'; });
+  var nach = {};
+  server.forEach(function(n){ if (n.eigen) nach['e' + n.client_id] = n; else nach['f' + n.client_id + n.von] = n; });
+  warte.forEach(function(w){
+    if (w.geloescht) { delete nach['e' + w.client_id]; return; }
+    nach['e' + w.client_id] = { client_id:w.client_id, ziel:w.ziel, text:w.text, sichtbar:w.sichtbar, eigen:true, von:'', zeit:w.zeit, wartet:true };
+  });
+  return Object.keys(nach).map(function(k){ return nach[k]; }).sort(function(a, b){ return String(a.zeit) < String(b.zeit) ? -1 : 1; });
+}
+
+/* Ansichten */
+function zeige(id){
+  ['schritt-mail','schritt-code','laden'].forEach(function(x){ $(x).hidden = (x !== id); });
+  var app = (id === 'app');
+  $('app').hidden = !app; $('fuss-app').hidden = !app;
+  statusZeigen();
+}
+function meldung(id, text, art){ var m = $(id); m.textContent = text || ''; m.className = 'meldung' + (art ? ' ' + art : ''); }
+function texteSetzen(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-t]').forEach(function(e){ e.textContent = t(e.getAttribute('data-t')); });
+  document.querySelectorAll('[data-sprache]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-sprache') === LANG); });
+  if (MAIL) $('code-text').textContent = CODE_HINWEIS ? (CODE_HINWEIS[LANG] || CODE_HINWEIS.en || '') : '';
+  $('vi-hinweis').hidden = LANG !== 'vi';
+  var n = ausgang().length;
+  $('wartet-login').hidden = !n; $('wartet-login').textContent = n ? t('neuAnmelden', { n:n }) : '';
+}
+
+/* Farbwähler */
+function farbeSetzen(i){
+  var f = FARBEN[i] || FARBEN[0];
+  var dunkel = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.style.setProperty('--accent', dunkel ? f.dunkel : f.hell);
+  document.querySelectorAll('.farbe').forEach(function(b, j){ b.setAttribute('aria-pressed', j === i); });
+}
+function farbenBauen(){
+  var box = $('farben'); box.innerHTML = '';
+  var gewaehlt = parseInt(lies(K.farbe) || '0', 10) || 0;
+  FARBEN.forEach(function(f, i){
+    box.appendChild(el('button', { class:'farbe', type:'button', title:f.name, 'aria-label':f.name, style:'background:' + f.hell,
+      onclick:function(){ schreib(K.farbe, String(i)); farbeSetzen(i); } }));
+  });
+  farbeSetzen(gewaehlt);
+}
+
+/* Bausteine */
+function kopf(teil){ return [ el('h2', { class:'abschnitt', text:t('r_' + teil) }), el('div', { class:'unterzeile', text:t('u_' + teil) }) ]; }
+function leer(){ return el('p', { class:'grau', text:t('keineDaten') }); }
+
+function notizKarte(n){
+  var bearbeiten = OFFEN && OFFEN.art === 'notiz' && OFFEN.client_id === n.client_id;
+  if (bearbeiten) return notizEditor(n.ziel, n);
+  return el('div', { class:'notiz' + (n.sichtbar === 'alle' ? ' alle' : '') },
+    el('div', { class:'kopfzeile' },
+      el('span', { text:(n.sichtbar === 'alle' ? t('vonAllen') : t('eigene')) + (n.von && !n.eigen ? ' · ' + n.von : '') }),
+      el('span', { text:n.zeit ? zeitText(Date.parse(n.zeit)) : '' })),
+    el('div', { class:'inhalt', text:n.text }),
+    n.wartet ? el('div', { class:'klein warte', text:t('wartet') }) : null,
+    n.eigen ? el('div', { class:'aktionen' },
+      el('button', { class:'textknopf', type:'button', text:t('bearbeiten'), onclick:function(){ OFFEN = { art:'notiz', client_id:n.client_id }; allesBauen(); } }),
+      el('button', { class:'textknopf', type:'button', text:t('loeschen'), onclick:function(){
+        inAusgang({ art:'notiz', client_id:n.client_id, ziel:n.ziel, text:'', sichtbar:n.sichtbar, geloescht:true, zeit:new Date().toISOString() }); } })) : null);
+}
+function notizEditor(ziel, alt){
+  var ta = el('textarea', { maxlength:'4000' }); ta.value = alt ? alt.text : '';
+  var alle = el('input', { type:'checkbox', id:'chk-alle' }); alle.checked = !!(alt && alt.sichtbar === 'alle');
+  var box = el('div', { class:'karte editor' },
+    el('label', { text:ziel === 'allgemein' ? t('notizAllgemein') : t('notizTag') }), ta,
+    istAdmin() ? el('label', { class:'zeile2', for:'chk-alle' }, alle, el('span', { text:t('fuerAlle') })) : null,
+    el('button', { class:'knopf', type:'button', text:t('speichern'), onclick:function(){
+      var text = ta.value.trim();
+      if (!text && !alt){ OFFEN = null; allesBauen(); return; }
+      OFFEN = null;
+      inAusgang({ art:'notiz', client_id:alt ? alt.client_id : neueId(), ziel:ziel, text:text, geloescht:!text,
+                  sichtbar:istAdmin() && alle.checked ? 'alle' : 'privat', zeit:new Date().toISOString() });
+    } }),
+    el('button', { class:'knopf zweit', type:'button', text:t('abbrechen'), onclick:function(){ OFFEN = null; allesBauen(); } }));
+  setTimeout(function(){ try{ ta.focus(); }catch(e){} }, 30);
+  return box;
+}
+function tagEditor(d, neu){
+  var ta = el('textarea', { rows:'8' }); ta.value = neu ? '' : (d.activities || []).map(function(a){ return typeof a === 'string' ? a : L(a.text); }).join('\n');
+  var dat = neu ? el('input', { type:'text', inputmode:'numeric', placeholder:'2026-11-06' }) : null;
+  return el('div', { class:'karte editor' },
+    neu ? el('label', { text:t('neuesDatum') }) : null, dat,
+    el('label', { text:t('tagHilfe'), style:neu ? 'margin-top:10px' : null }), ta,
+    el('button', { class:'knopf', type:'button', text:t('speichern'), onclick:function(){
+      var iso = neu ? (dat.value || '').trim() : d.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || !datum(iso)) { dat && dat.focus(); return; }
+      var acts = ta.value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+      var basis = (ROH && ROH.tag_basis && ROH.tag_basis[iso]) || 'NEU';
+      var wartend = ausgang().filter(function(x){ return x.art === 'tag' && x.datum === iso; })[0];
+      if (wartend) basis = wartend.basis;
+      OFFEN = null; TAG = iso;
+      inAusgang({ art:'tag', datum:iso, activities:acts, basis:basis, zeit:new Date().toISOString() });
+    } }),
+    el('button', { class:'knopf zweit', type:'button', text:t('abbrechen'), onclick:function(){ OFFEN = null; allesBauen(); } }));
+}
+
+function baueTage(c){
+  var box = $('teil-tage'); box.innerHTML = '';
+  box.append.apply(box, kopf('tage'));
+  var tage = (c.schedule || []).filter(function(d){ return d && d.date; });
+  if (!tage.length){ box.appendChild(leer()); }
+  var heute = heuteIso();
+  if (tage.length && (TAG == null || !tage.some(function(d){ return d.date === TAG; }))){
+    TAG = tage.some(function(d){ return d.date === heute; }) ? heute : tage[0].date;
+  }
+  var leiste = el('div', { class:'tage', role:'group', 'aria-label':t('r_tage') });
+  tage.forEach(function(d){
+    leiste.appendChild(el('button', {
+      class:'tag' + (d.date === heute ? ' heute' : ''), type:'button', 'aria-pressed': d.date === TAG, 'aria-label': langesDatum(d.date),
+      onclick:function(){ TAG = d.date; OFFEN = null; baueTage(DATEN); }
+    }, el('span', { class:'wt', text:fmt(d.date, { weekday:'short' }).replace('.', '') }),
+       el('span', { class:'zahl', text:String(datum(d.date).getDate()) }),
+       el('span', { class:'mon', text:fmt(d.date, { month:'short' }).replace('.', '') })));
+  });
+  box.appendChild(leiste);
+  if (OFFEN && OFFEN.art === 'tagneu'){ box.appendChild(tagEditor(null, true)); return; }
+  var tag = tage.filter(function(d){ return d.date === TAG; })[0];
+  if (tag){
+    box.appendChild(el('div', { class:'tagkopf', text:langesDatum(tag.date) }));
+    if (OFFEN && OFFEN.art === 'tag' && OFFEN.datum === tag.date) box.appendChild(tagEditor(tag, false));
+    else {
+      var acts = (tag.activities || []).map(function(a){
+        if (a && typeof a === 'object' && !Array.isArray(a) && 'text' in a) return el('div', null, persoenlich(a), a.time ? el('strong', { text:L(a.time) + ' ' }) : null, L(a.text));
+        return el('div', { text:L(a) });
+      });
+      box.appendChild(acts.length ? el('div', { class:'liste' }, acts) : leer());
+      if (tag.wartet) box.appendChild(el('p', { class:'geaendert', text:t('wartet') }));
+    }
+    var ns = notizenSicht().filter(function(n){ return n.ziel === 'tag:' + tag.date; });
+    var nbox = el('div', { class:'notizen' }, ns.map(notizKarte));
+    if (OFFEN && OFFEN.art === 'notizneu' && OFFEN.ziel === 'tag:' + tag.date) nbox.appendChild(notizEditor('tag:' + tag.date, null));
+    box.appendChild(nbox);
+  }
+  if (!OFFEN) box.appendChild(el('div', { class:'zeilen' },
+    tag ? el('button', { class:'pill', type:'button', text:t('notizNeu'), onclick:function(){ OFFEN = { art:'notizneu', ziel:'tag:' + tag.date }; baueTage(DATEN); } }) : null,
+    istAdmin() && tag ? el('button', { class:'pill', type:'button', text:t('tagBearbeiten'), onclick:function(){ OFFEN = { art:'tag', datum:tag.date }; baueTage(DATEN); } }) : null,
+    istAdmin() ? el('button', { class:'pill', type:'button', text:t('tagNeu'), onclick:function(){ OFFEN = { art:'tagneu' }; baueTage(DATEN); } }) : null));
+  var akt = leiste.querySelector('[aria-pressed="true"]');
+  if (akt && akt.scrollIntoView) try{ akt.scrollIntoView({ block:'nearest', inline:'center' }); }catch(e){}
+}
+
+function baueNotizen(){
+  var box = $('teil-notizen'); box.innerHTML = '';
+  box.append.apply(box, kopf('notizen'));
+  var ns = notizenSicht();
+  if (OFFEN && OFFEN.art === 'notizneu' && OFFEN.ziel === 'allgemein') box.appendChild(notizEditor('allgemein', null));
+  else box.appendChild(el('div', { class:'zeilen', style:'margin-bottom:8px' },
+    el('button', { class:'pill', type:'button', text:t('notizNeu'), onclick:function(){ OFFEN = { art:'notizneu', ziel:'allgemein' }; baueNotizen(); } })));
+  if (!ns.length){ box.appendChild(el('p', { class:'grau', text:t('keineNotizen') })); return; }
+  var gruppen = {};
+  ns.forEach(function(n){ (gruppen[n.ziel] = gruppen[n.ziel] || []).push(n); });
+  Object.keys(gruppen).sort(function(a, b){ return a === 'allgemein' ? -1 : b === 'allgemein' ? 1 : (a < b ? -1 : 1); }).forEach(function(z){
+    box.appendChild(el('h3', { text: z === 'allgemein' ? t('allgemein') : langesDatum(z.slice(4)) }));
+    gruppen[z].forEach(function(n){ box.appendChild(notizKarte(n)); });
+  });
+}
+
+function baueProgramm(c){
+  var box = $('teil-programm'); box.innerHTML = '';
+  box.append.apply(box, kopf('programm'));
+  var pr = c.programmes || [];
+  if (!pr.length){ box.appendChild(leer()); return; }
+  pr.forEach(function(p){
+    box.appendChild(el('div', { class:'karte programm' },
+      el('div', { class:'datum', text:langesDatum(p.date) }),
+      el('div', { class:'titel', text:L(p.title) }),
+      p.soloists ? el('div', { class:'solisten', text:L(p.soloists) }) : null,
+      el('ul', null, (p.works || []).map(function(w){
+        var s = L(w);
+        if (/^(intermission|pause|interval|giải lao)$/i.test(s.trim())) return el('li', { class:'pause', text:t('pause') });
+        return el('li', { text:s });
+      }))));
+  });
+  if (c.run_of_show){
+    box.appendChild(el('h3', { text:t('ablauf') }));
+    box.appendChild(el('div', { class:'karte' }, el('p', { style:'margin:0', text:L(c.run_of_show.text != null ? c.run_of_show.text : c.run_of_show) })));
+  }
+}
+
+function flugZeile(f){
+  return el('div', { class:'flug' },
+    el('span', { class:'wann', text:kurzesDatum(f.date) }),
+    el('span', { class:'nr', text:L(f.flight) }),
+    el('span', { class:'route', text:L(f.route) }),
+    f.time ? el('span', { class:'zeit', text:L(f.time) }) : null);
+}
+function baueFluege(c){
+  var box = $('teil-fluege'); box.innerHTML = '';
+  box.append.apply(box, kopf('fluege'));
+  var f = c.flights;
+  if (!f){ box.appendChild(leer()); return; }
+  if ((f.group_outbound || []).length){ box.appendChild(el('h3', { text:t('hinflug') })); box.appendChild(el('div', { class:'liste' }, f.group_outbound.map(flugZeile))); }
+  if ((f.group_return || []).length){ box.appendChild(el('h3', { text:t('rueckflug') })); box.appendChild(el('div', { class:'liste' }, f.group_return.map(flugZeile))); }
+  if ((f.exceptions || []).length){
+    box.appendChild(el('h3', { text:t('ausnahmen') }));
+    box.appendChild(el('div', { class:'liste' }, f.exceptions.map(function(x){
+      return el('div', null, persoenlich(x), el('strong', { text:L(x.person) }), el('div', { class:'klein', text:L(x.detail) }));
+    })));
+  }
+  if (f.timezone_note) box.appendChild(el('p', { class:'grau klein', style:'margin-top:14px', text:L(f.timezone_note) }));
+}
+
+function baueHotels(c){
+  var box = $('teil-hotels'); box.innerHTML = '';
+  box.append.apply(box, kopf('hotels'));
+  var h = c.hotels;
+  if (!h){ box.appendChild(leer()); return; }
+  if (h.status) box.appendChild(el('div', { class:'hinweis', text:L(h.status) }));
+  var liste = (h.hotels || []).map(function(x){
+    return el('div', null, persoenlich(x),
+      el('div', { class:'kontakt' }, el('div', { class:'name', text:L(x.name) })),
+      x.address ? el('a', { href:karteLink(L(x.address)), target:'_blank', rel:'noopener', text:L(x.address) }) : null,
+      x.phone ? el('div', null, el('a', { href:telLink(L(x.phone)), text:L(x.phone) })) : null,
+      x.rooms ? el('div', { class:'grau klein', text:L(x.rooms) }) : null);
+  });
+  if (liste.length) box.appendChild(el('div', { class:'liste' }, liste));
+  if (h.notes) box.appendChild(el('p', { class:'grau klein', style:'margin-top:14px', text:L(h.notes) }));
+}
+
+function baueInfo(c){
+  var box = $('teil-info'); box.innerHTML = '';
+  box.append.apply(box, kopf('info'));
+  var n = 0;
+  if (c.venue){
+    n++;
+    box.appendChild(el('h3', { text:t('spielort') }));
+    box.appendChild(el('div', { class:'karte' },
+      el('div', { class:'kontakt' }, el('div', { class:'name', text:L(c.venue.name) })),
+      c.venue.address ? el('a', { href:karteLink(L(c.venue.address)), target:'_blank', rel:'noopener', text:L(c.venue.address) }) : null,
+      c.venue.operator ? el('div', { class:'grau klein', style:'margin-top:6px', text:t('veranstalter') + ': ' + L(c.venue.operator) }) : null));
+  }
+  [['visa','visum'], ['meals','essen'], ['free_day_excursion','freiertag']].forEach(function(p){
+    var v = c[p[0]]; if (!v) return; n++;
+    box.appendChild(el('h3', { text:t(p[1]) }));
+    box.appendChild(el('div', { class:'karte' }, el('p', { style:'margin:0', text:L(v.text != null ? v.text : v) })));
+  });
+  if (!n) box.appendChild(leer());
+}
+
+function baueKontakte(c){
+  var box = $('teil-kontakte'); box.innerHTML = '';
+  box.append.apply(box, kopf('kontakte'));
+  var ks = c.contacts || [];
+  if (!ks.length){ box.appendChild(leer()); return; }
+  var gruppen = [], nach = {};
+  ks.forEach(function(k){ var o = L(k.org) || ''; if (!nach[o]){ nach[o] = []; gruppen.push(o); } nach[o].push(k); });
+  gruppen.forEach(function(o){
+    if (o) box.appendChild(el('div', { class:'orga', text:o }));
+    box.appendChild(el('div', { class:'liste' }, nach[o].map(function(k){
+      return el('div', { class:'kontakt' },
+        el('div', { class:'name', text:L(k.name) }),
+        k.role ? el('div', { class:'rolle', text:L(k.role) }) : null,
+        el('div', { class:'wege' },
+          k.phone ? el('a', { href:telLink(L(k.phone)), text:L(k.phone) }) : null,
+          k.email ? el('a', { href:'mailto:' + L(k.email), text:L(k.email) }) : null));
+    })));
+  });
+}
+
+function reiterBauen(){
+  var z = $('reiter'); z.innerHTML = '';
+  REITER.forEach(function(r){
+    z.appendChild(el('button', { class:'pill', type:'button', 'aria-pressed': r === AKTIV, text:t('r_' + r),
+      onclick:function(){ OFFEN = null; reiterWaehlen(r, true); allesBauen(); } }));
+  });
+}
+function reiterWaehlen(r, nachOben){
+  AKTIV = REITER.indexOf(r) >= 0 ? r : 'tage';
+  schreib(K.reiter, AKTIV);
+  document.querySelectorAll('section.teil').forEach(function(s){ s.hidden = (s.getAttribute('data-reiter') !== AKTIV); });
+  document.querySelectorAll('#reiter .pill').forEach(function(b, i){ b.setAttribute('aria-pressed', REITER[i] === AKTIV); });
+  if (nachOben){ var n = document.querySelector('nav.reiter'); if (n && window.scrollY > n.offsetTop) window.scrollTo(0, n.offsetTop); }
+}
+
+function allesBauen(){
+  datenAufbereiten();
+  if (!DATEN) return;
+  if (REISENDER){
+    var w = $('wer'); w.innerHTML = '';
+    w.appendChild(document.createTextNode(t('angemeldet', { name:[REISENDER.vorname, REISENDER.nachname].filter(Boolean).join(' ') })));
+    if (istAdmin()) w.appendChild(el('span', { class:'recht', text:t('admin') }));
+  }
+  reiterBauen();
+  baueTage(DATEN); baueNotizen(); baueProgramm(DATEN); baueFluege(DATEN); baueHotels(DATEN); baueInfo(DATEN); baueKontakte(DATEN);
+  reiterWaehlen(AKTIV, false);
+  statusZeigen();
+}
+
+function spracheSetzen(s, ausdruecklich){
+  LANG = SPRACHEN.indexOf(s) >= 0 ? s : 'de';
+  if (ausdruecklich) schreib(K.sprache, LANG);
+  texteSetzen(); allesBauen();
+}
+function spracheAusPerson(){
+  if (!lies(K.sprache) && REISENDER && SPRACHEN.indexOf(REISENDER.sprache) >= 0) LANG = REISENDER.sprache;
+}
+
+/* Ablauf */
+function cacheZeigen(c){
+  ROH = c.roh; REISENDER = ROH.reisender || null; MAIL = c.mail || MAIL;
+  spracheAusPerson(); texteSetzen(); zeige('app'); allesBauen();
+}
+function datenLaden(){
+  var token = lies(K.token);
+  var c = liesJ(K.cache, null);
+  if (!token){
+    /* Anmeldung abgelaufen: der Plan bleibt lesbar, die Anmeldung steht oben */
+    if (c && c.roh) cacheZeigen(c); else zeige('schritt-mail');
+    $('schritt-mail').hidden = false; texteSetzen(); return;
+  }
+  /* Sofort aus dem Gerät, dann im Hintergrund frisch holen */
+  if (c && c.roh) cacheZeigen(c); else { zeige('laden'); $('btn-nochmal').hidden = true; $('laden-text').textContent = t('laden'); }
+  abgleichen().then(function(){ return rufe({ action:'inhalt', token:token }); }).then(function(j){
+    if (j.ok){
+      ROH = { content:j.content || {}, content_vi:j.content_vi || {}, tag_basis:j.tag_basis || {}, notizen:j.notizen || [], reisender:j.reisender, zeit:Date.now() };
+      REISENDER = j.reisender || null; cacheSchreiben();
+      $('offline').hidden = true;
+      spracheAusPerson(); texteSetzen(); zeige('app'); allesBauen();
+      return;
+    }
+    if (j.status === 'SESSION_UNGUELTIG' || j.status === 'KEIN_TOKEN'){ sitzungWeg(); return; }
+    if (ROH){
+      var o = $('offline'); o.textContent = t('offline', { zeit:zeitText(ROH.zeit || Date.now()) }); o.hidden = false;
+      return;
+    }
+    $('laden-text').textContent = t(j.status === 'NETZ' ? 'e_NETZ' : 'e_SERVER');
+    $('btn-nochmal').hidden = false;
+  });
+}
+/* Sitzung abgelaufen: Token weg, aber Plan und wartende Anmerkungen bleiben im Gerät */
+function sitzungWeg(){
+  schreib(K.token, null);
+  $('inp-mail').value = MAIL || lies(K.mail) || '';
+  texteSetzen();
+  if (ROH) $('schritt-mail').hidden = false; else zeige('schritt-mail');
+  try{ window.scrollTo(0, 0); }catch(e){}
+}
+
+function codeAnfordern(neu){
+  var mail = ($('inp-mail').value || MAIL || '').trim().toLowerCase();
+  var ziel = neu ? 'msg-code' : 'msg-mail';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){ meldung(ziel, t('e_EMAIL_UNGUELTIG'), 'fehler'); return; }
+  var knopf = neu ? $('btn-neu') : $('btn-mail');
+  knopf.disabled = true; meldung(ziel, '');
+  rufe({ action:'request_code', email:mail, seite:SEITE }).then(function(j){
+    knopf.disabled = false;
+    if (j.ok){
+      MAIL = mail; schreib(K.mail, mail);
+      CODE_HINWEIS = j.hinweis || null;
+      texteSetzen(); zeige('schritt-code');
+      $('inp-code').value = '';
+      meldung('msg-code', neu ? t('neuGeschickt') : '', neu ? 'gut' : '');
+      try{ $('inp-code').focus(); }catch(e){}
+      return;
+    }
+    meldung(ziel, t('e_' + (j.status || 'SERVER')), 'fehler');
+  });
+}
+function codePruefen(){
+  var code = ($('inp-code').value || '').replace(/\D+/g, '');
+  if (code.length !== 6){ meldung('msg-code', t('e_EINGABE_FEHLT'), 'fehler'); return; }
+  $('btn-code').disabled = true; meldung('msg-code', '');
+  rufe({ action:'verify_code', email:MAIL, code:code }).then(function(j){
+    $('btn-code').disabled = false;
+    if (j.ok && j.token){
+      /* Andere Person auf diesem Gerät: alten Stand und fremde Warteschlange nicht übernehmen */
+      var c = liesJ(K.cache, null);
+      if (c && c.mail && c.mail !== MAIL){ schreib(K.cache, null); schreib(K.ausgang, null); ROH = null; }
+      schreib(K.token, j.token);
+      datenLaden();
+      return;
+    }
+    meldung('msg-code', t('e_' + (j.status || 'SERVER')), 'fehler');
+  });
+}
+function abmelden(){
+  var n = ausgang().length;
+  if (n && !window.confirm(t('abmeldenWarte', { n:n }))) return;
+  schreib(K.token, null); schreib(K.cache, null); schreib(K.ausgang, null);
+  ROH = null; DATEN = null; REISENDER = null; TAG = null; OFFEN = null;
+  $('inp-mail').value = MAIL || lies(K.mail) || '';
+  meldung('msg-mail', ''); texteSetzen(); zeige('schritt-mail');
+}
+
+/* Start */
+document.querySelectorAll('[data-sprache]').forEach(function(b){
+  b.addEventListener('click', function(){ spracheSetzen(b.getAttribute('data-sprache'), true); });
+});
+$('form-mail').addEventListener('submit', function(e){ e.preventDefault(); codeAnfordern(false); });
+$('form-code').addEventListener('submit', function(e){ e.preventDefault(); codePruefen(); });
+$('inp-code').addEventListener('input', function(){ var v = this.value.replace(/\D+/g, ''); if (v.length === 6 && !$('btn-code').disabled) codePruefen(); });
+$('btn-neu').addEventListener('click', function(){ codeAnfordern(true); });
+$('btn-andere').addEventListener('click', function(){ MAIL = ''; schreib(K.mail, null); $('inp-mail').value = ''; meldung('msg-mail', ''); zeige('schritt-mail'); });
+$('btn-nochmal').addEventListener('click', datenLaden);
+$('btn-ab').addEventListener('click', abmelden);
+window.addEventListener('online', function(){ abgleichen(); });
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') abgleichen(); });
+setInterval(function(){ if (navigator.onLine !== false) abgleichen(); }, 60000);
+
+var gespeichert = lies(K.sprache);
+if (SPRACHEN.indexOf(gespeichert) >= 0) LANG = gespeichert;
+else { var nl = (navigator.language || 'de').toLowerCase(); LANG = /^de/.test(nl) ? 'de' : /^vi/.test(nl) ? 'vi' : 'en'; }
+AKTIV = lies(K.reiter) || 'tage';
+MAIL = lies(K.mail) || '';
+$('inp-mail').value = MAIL;
+farbenBauen();
+texteSetzen();
+datenLaden();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+})();
+</script>
+</body>
+</html>
