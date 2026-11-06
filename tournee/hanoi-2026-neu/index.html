@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Tourneeplan Hanoi 2026</title>
-<meta name="tb-version" content="0b31113b">
+<meta name="tb-version" content="0b31113d">
 <style>
 :root{--wine:var(--wine);--ink:#2B2F33;--grey:#6B6F75;--paper:#F7F1E6;--teal:#1F6F68;--line:#E6DECF}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1308,7 +1308,7 @@ function locate(){
 
 /* ---------- Updates ---------- */
 (function(){
- var V='0b31113b';if(V.indexOf('__')===0)return;
+ var V='0b31113d';if(V.indexOf('__')===0)return;
  var busy=false,bn=null,tt=null,laedt=false,T0=Date.now();
  function toast(m,ms){try{var e=document.getElementById('tbtoast');if(!e){e=document.createElement('div');e.id='tbtoast';e.setAttribute('role','status');e.style.cssText='position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9500;background:#2B2F33;color:#fff;border-radius:99px;padding:12px 18px;font:600 15px -apple-system,BlinkMacSystemFont,sans-serif;max-width:88vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.35);transition:opacity .25s;pointer-events:none';document.body.appendChild(e)}e.textContent=m;e.style.opacity='1';clearTimeout(tt);tt=setTimeout(function(){e.style.opacity='0'},ms||3200)}catch(x){}}
  window.__tbToast=toast;
@@ -1787,7 +1787,7 @@ function nzRender(){
  if(!nzGo)return;
  [].forEach.call(document.querySelectorAll('.day .nz,.day .row.nzr,.day .row.nzn'),function(e){e.parentNode&&e.parentNode.removeChild(e)});
  Object.keys(ROWS).forEach(function(k){var r=ROWS[k],b=BT[k],t=r.querySelector('.t');
-  r.classList.remove('nz-abg','nz-ver','nzh');r.removeAttribute('data-nzt0');if(t&&t.innerHTML!==b.html)t.innerHTML=b.html;
+  r.classList.remove('nz-abg','nz-ver','nzh');r.removeAttribute('data-nzt0');if(t&&t.innerHTML!==b.html)t.innerHTML=b.html;if(b.sb0!=null){var sbx=r.querySelector('.sb');if(sbx&&sbx.textContent!==b.sb0)sbx.textContent=b.sb0}
   b.f.forEach(function(f){f.el.setAttribute('data-ab',f.ab);if(f.bis!==null)f.el.setAttribute('data-bis',f.bis)})});
  var act=aktiv(),stat={},orph=[],lists={},inc={},gone=[],mv=[],d;
  act.forEach(function(n){var p=n.p;if(!n.pub||(p.k!=='v'&&p.k!=='s'))return;var o=stat[p.r];if(!o||(p.ts||0)>=(o.p.ts||0))stat[p.r]=n});
@@ -1800,7 +1800,7 @@ function nzRender(){
   else{var dd=BT[g.key].d;lists[dd]=lists[dd].filter(function(x){return x!==g.r});if(g.r.parentNode)g.r.parentNode.removeChild(g.r)}});
  mv.forEach(function(m){var r=m.r,b=BT[m.key],p=m.n.p,nd=+p.nd||b.d,nt=p.nt,t=r.querySelector('.t');
   if(!/^\d{1,2}:\d{2}$/.test(nt||'')||!(nd>=1&&nd<=10)||!BASE[nd]||!t)return;
-  var res=neueZeit(t.textContent,nt);t.textContent=res.text;
+  var res=neueZeit(t.textContent,nt);t.textContent=res.text;var sbz=r.querySelector('.sb');if(sbz){if(b.sb0==null)b.sb0=sbz.textContent;var sbt=p.sb||b.sb0.split(b.t0).join(nt);if(sbz.textContent!==sbt)sbz.textContent=sbt}
   r.setAttribute('data-nzt0',b.t0);r.classList.add('nz-ver');
   b.f.forEach(function(f){var a=mm(f.ab);if(a===null)return;f.el.setAttribute('data-ab',hm(a+res.delta));var bs=mm(f.bis);if(f.bis!==null&&bs!==null)f.el.setAttribute('data-bis',hm(bs+res.delta))});
   lists[b.d]=lists[b.d].filter(function(x){return x!==r});
@@ -1973,6 +1973,7 @@ function nzOeffneTag(d){
  var n=jetzt(),t='08:00';
  if(n.y===2026&&n.mo===10&&n.d===d){var m=Math.ceil((n.m+1)/5)*5;t=hm(m>1380?1380:m)}
  nzForm({d:d,r:'',ti:'',t0:t,n:null})}
+function nzSbVon(key){try{var r=(key&&ROWS[key])||(key&&findRow(key));var b=r&&BT[r.getAttribute('data-nzk')];if(b&&b.sb0!=null)return b.sb0;var s=r&&r.querySelector('.sb');return s?s.textContent:''}catch(e){return''}}
 function nzForm(o){
  if(offen)return;
  if(o.n&&o.n.p&&o.n.p.fremd){toast('Von '+(o.n.p.von||'')+', nur zum Ansehen');return}
@@ -1996,6 +1997,7 @@ function nzForm(o){
   +'</div>';
  var v0=(p&&p.nd)||d,vt=(p&&p.nt)||t0;
  var panelV='<div class="nzp" data-k="v"'+(kind==='v'?'':' hidden')+'><div class="nzrow2"><div><div class="nzl">Neuer Tag</div><select id="nvd">'+dayOpt(+v0)+'</select></div><div><div class="nzl">Neue Uhrzeit</div><input type="time" id="nvt" value="'+esc(vt)+'"></div></div>'
+  +'<div><div class="nzl">Text unter dem Termin</div><textarea id="nvsb" maxlength="400" rows="4" data-orig="'+esc(nzSbVon(o.r||(p&&p.r)))+'">'+tv((kind==='v'&&p&&p.sb)||nzSbVon(o.r||(p&&p.r)))+'</textarea><div class="ezsmall">Uhrzeiten im Text bitte mit anpassen. Die alte Startzeit ersetzt die App von selbst, wenn Du den Text nicht änderst.</div></div>'
   +'<div><div class="nzl">Grund (optional)</div><textarea id="nvx" maxlength="200" rows="2">'+tv(kind==='v'&&p?p.x:'')+'</textarea></div><div class="ezsmall">Gilt für alle. Der Termin springt im Plan an die neue Zeit.</div></div>';
  var panelS='<div class="nzp" data-k="s"'+(kind==='s'?'':' hidden')+'><div><div class="nzl">Grund (optional)</div><textarea id="nsx" maxlength="200" rows="2">'+tv(kind==='s'&&p?p.x:'')+'</textarea></div><div class="ezsmall">Der Termin verschwindet für alle aus dem Plan. Bei der Tourleitung bleibt er durchgestrichen mit „Abgesagt“ sichtbar.</div></div>';
  var warn=tok()?'':'<div class="nzwarn">Für alle schreiben und das Sichern Deiner Notizen geht erst nach einer neuen Anmeldung.<button type="button" data-a="relog">Jetzt neu anmelden</button></div>';
@@ -2057,7 +2059,8 @@ function nzForm(o){
    }else if(cur==='v'){
     nt=root.querySelector('#nvt').value;if(!nt){fehl('Bitte die neue Uhrzeit wählen.');return}
     q.nd=+root.querySelector('#nvd').value;q.nt=nt;q.x=root.querySelector('#nvx').value.trim();
-    if(q.nd===d&&nt===t0&&!ex){fehl('Die neue Zeit ist dieselbe wie bisher.');return}
+    var sbE=root.querySelector('#nvsb'),sbO=sbE?sbE.getAttribute('data-orig')||'':'',sbN=sbE?sbE.value.replace(/\s+/g,' ').trim():'';if(sbE){if(sbN===sbO.replace(/\s+/g,' ').trim()&&nt!==t0)sbN=sbN.split(t0).join(nt);if(sbN&&sbN!==sbO.replace(/\s+/g,' ').trim())q.sb=sbN;else if(sbN&&p&&p.sb)q.sb=sbN}
+    if(q.nd===d&&nt===t0&&!ex&&!q.sb){fehl('Die neue Zeit ist dieselbe wie bisher.');return}
     oeff=true;if(!canPub){fehl('Für alle schreiben geht erst nach neuer Anmeldung.');return}
    }else{q.x=root.querySelector('#nsx').value.trim();oeff=true;if(!canPub){fehl('Für alle schreiben geht erst nach neuer Anmeldung.');return}}
    var id=ex?ex.i:uuid();zu();nzPut({i:id,p:q,pub:oeff});
