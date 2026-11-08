@@ -1,6 +1,6 @@
 {
- "name": "Tour Hanoi 2026 (Probe)",
- "short_name": "Tour Probe",
+ "name": "Tour",
+ "short_name": "Tour",
  "start_url": "index.html",
  "scope": "./",
  "display": "standalone",

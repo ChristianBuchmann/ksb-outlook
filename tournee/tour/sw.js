@@ -28,7 +28,7 @@ self.addEventListener('install',function(e){
 self.addEventListener('message',function(e){if(e.data==='skip')self.skipWaiting();else if(e.data==='hatPush'&&e.ports&&e.ports[0])e.ports[0].postMessage('ja')});
 /* 03.11.2026 Push für „Nachricht an alle“ (Christian 12:52): der Server schickt eine leere Meldung, der Dienst holt den Text und zeigt ihn an.
    Jede Meldung muss eine sichtbare Benachrichtigung ergeben (sonst entzieht iOS die Erlaubnis), deshalb gibt es immer einen Ersatztext. */
-var PAPI='https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/hanoi-app';
+var PAPI='https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/tour-app';
 self.addEventListener('push',function(e){
  var titel='Wiener KammerOrchester',text='Neue Nachricht der Tourleitung. Bitte die App öffnen.';
  e.waitUntil(caches.open('tb-push').then(function(c){return c.match(SC+'__push-token')}).then(function(r){return r?r.text():''}).then(function(t){
