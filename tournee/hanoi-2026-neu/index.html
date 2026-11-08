@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Tourneeplan Hanoi 2026</title>
-<meta name="tb-version" content="0b311149">
+<meta name="tb-version" content="0b31114a">
 <style>
 :root{--wine:var(--wine);--ink:#2B2F33;--grey:#6B6F75;--paper:#F7F1E6;--teal:#1F6F68;--line:#E6DECF}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1363,7 +1363,7 @@ function locate(){
 
 /* ---------- Updates ---------- */
 (function(){
- var V='0b311149';if(V.indexOf('__')===0)return;
+ var V='0b31114a';if(V.indexOf('__')===0)return;
  var busy=false,bn=null,tt=null,laedt=false,T0=Date.now();
  function toast(m,ms){try{var e=document.getElementById('tbtoast');if(!e){e=document.createElement('div');e.id='tbtoast';e.setAttribute('role','status');e.style.cssText='position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9500;background:#2B2F33;color:#fff;border-radius:99px;padding:12px 18px;font:600 15px -apple-system,BlinkMacSystemFont,sans-serif;max-width:88vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.35);transition:opacity .25s;pointer-events:none';document.body.appendChild(e)}e.textContent=m;e.style.opacity='1';clearTimeout(tt);tt=setTimeout(function(){e.style.opacity='0'},ms||3200)}catch(x){}}
  window.__tbToast=toast;
@@ -3112,7 +3112,7 @@ html[data-th="dark"] .row .dac{background:#1c1c1e}
 #wkodaw .ust td:first-child{white-space:normal;min-width:120px;font-weight:600}#wkodaw .ust td small{display:block;font-weight:400;color:#8a8d93}
 #wkodaw .ust tr.usnone td{color:#A52A3C}
 #wkodaw .uscsv{margin-top:8px}
-#wkodaw .usk{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+#wkodaw .usk{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0}
 #wkodaw .usk div{background:#F4F1EA;border-radius:10px;padding:8px 4px;text-align:center}
 #wkodaw .usk b{display:block;font-size:20px}
 #wkodaw .usk span{font-size:11px;color:#6B6F75}
@@ -3141,10 +3141,10 @@ var lauf=false;
 function senden(){if(lauf||!Q.length||aus()||!navigator.onLine)return;lauf=true;var teil=Q.slice(0,200);
  try{fetch(API,{method:'POST',keepalive:true,headers:{'content-type':'text/plain'},body:JSON.stringify({action:'stat',token:ls('tb-wko-token'),ev:teil})}).then(function(r){return r.json()}).then(function(j){lauf=false;if(j&&j.ok){Q=Q.slice(teil.length);merk()}},function(){lauf=false})}catch(e){lauf=false}}
 var ua=navigator.userAgent||'',os=/iPhone|iPad|iPod/.test(ua)?'iPhone':(/Android/.test(ua)?'Android':'Computer'),app=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
-setTimeout(function(){add('start',os+(app?' App':' Browser'));add('sprache',document.documentElement.lang||ls('tb-wko-lang')||'de')},3000);
+
 function tab(){try{return sessionStorage.getItem('tb-wko-tab')||'heute'}catch(e){return 'heute'}}
 var alt=null;setInterval(function(){var t=tab();if(t!==alt){if(alt!==null)add('tab',t);alt=t}},2000);
-setInterval(function(){if(document.visibilityState==='visible')add('aktiv',tab())},60000);
+
 setInterval(senden,45000);setTimeout(senden,8000);
 document.addEventListener('visibilitychange',function(){if(document.hidden)senden()});
 function txt(el){var t=(el.getAttribute('aria-label')||el.textContent||'');return t.replace(/\s+/g,' ').trim().slice(0,40)}
@@ -3161,7 +3161,7 @@ document.addEventListener('click',function(ev){try{var el=ev.target.closest&&ev.
  if(el.hasAttribute('data-ea'))return add('klick','Essen '+el.getAttribute('data-ea'));
  if(/maps\.|google\.com\/maps|apple\.com/.test(h))return add('klick','Karte extern');
  if(/\bdab\b/.test(c))return add('klick','Menü: '+txt(el));
- add('klick',txt(el))}catch(e){}},true);
+ }catch(e){}},true);
 var gesehen={};
 if(window.IntersectionObserver){var io=new IntersectionObserver(function(es){es.forEach(function(e){var id=e.target.id;
   if(e.isIntersecting){e.target.__st=setTimeout(function(){if(!gesehen[id]||Date.now()-gesehen[id]>10*60e3){gesehen[id]=Date.now();add('tag',id)}},3000)}else clearTimeout(e.target.__st)})},{threshold:0.35});
@@ -3174,28 +3174,17 @@ function balken(liste,wert,name,extra){var mx=Math.max.apply(null,liste.map(wert
 window.__wkoStatistik=function(){var B=window.__wkoBlatt;if(!B)return;senden();
  var w=B('<div class="ushd"><h3>'+T('Nutzung der App')+'</h3><button type="button" class="usxx" aria-label="'+T('Schließen')+'">✕</button></div><div class="usl">'+T('Wird geladen …')+'</div><button type="button" class="knopf g zu">'+T('Schließen')+'</button>',function(w){var z=function(){window.__wkoZu&&window.__wkoZu()};w.querySelector('.zu').onclick=z;w.querySelector('.usxx').onclick=z});
  window.__wkoApi({action:'stat_lesen'}).then(function(j){var el=w.querySelector('.usl');if(!j||!j.ok){el.textContent=T('Nicht erreichbar. Bitte mit Internet nochmal.');return}
-  var h='<div class="usk"><div><b>'+j.jetzt+'</b><span>'+T('gerade aktiv')+'</span></div><div><b>'+j.heute+'</b><span>'+T('heute')+'</span></div><div><b>'+j.h24+'</b><span>'+T('24 Stunden')+'</span></div><div><b>'+j.angemeldet+'/'+j.reisende+'</b><span>'+T('je angemeldet')+'</span></div></div>';
-  if(j.nie&&j.nie.length)h+='<p class="usnie"><b>'+T('Noch nie angemeldet:')+'</b> '+j.nie.map(esc).join(', ')+'</p>';
-  h+='<p class="usx">🔔 '+j.push+' '+T('mit Benachrichtigungen')+' · 📷 '+j.fotos+' '+T('Fotos von')+' '+j.foto_personen+' · ✓ '+j.bin_da+' '+T('haben sich bei Abfahrten gemeldet')+' · 🍽 '+j.essen_ab+' '+T('Abmeldungen vom Essen')+'</p>';
-  if(j.stunden&&j.stunden.length){var st=[];for(var i=0;i<24;i++){var f=j.stunden.filter(function(x){return x.h===i})[0];st.push(f?f.p:0)}var mx=Math.max.apply(null,st.concat([1]));
-   h+='<h4>'+T('Heute je Stunde (Personen)')+'</h4><div class="ush">'+st.map(function(p,i){return '<div title="'+i+' h: '+p+'"><i style="height:'+Math.round(p/mx*100)+'%"></i><span>'+(i%6===0?i:'')+'</span></div>'}).join('')+'</div>'}
-  if(j.tabs&&j.tabs.length)h+='<h4>'+T('Bereiche, Minuten gesamt')+'</h4>'+balken(j.tabs,function(x){return x.min},function(x){return T(TABN[x.z]||x.z)},function(x){return x.p+' '+T('Pers.')});
-  if(j.tage&&j.tage.length)h+='<h4>'+T('Tage im Plan angesehen')+'</h4>'+balken(j.tage.slice().sort(function(a,b){return(+a.z.slice(1))-(+b.z.slice(1))}),function(x){return x.n},function(x){return x.z.slice(1)+'. Nov'},function(x){return x.p+' '+T('Pers.')});
-  if(j.top&&j.top.length)h+='<h4>'+T('Am meisten benutzt')+'</h4>'+balken(j.top.slice(0,25),function(x){return x.n},function(x){return(x.e==='tab'?'▸ ':x.e==='kachel'?'▣ ':x.e==='auf'?'▾ ':'')+(x.e==='tab'?T(TABN[x.z]||x.z):x.z)},function(x){return x.p+' '+T('Pers.')+(x.n24?', '+x.n24+' '+T('in 24 Std.'):'')});
-  if(j.je_tag&&j.je_tag.length)h+='<h4>'+T('Je Tag')+'</h4>'+balken(j.je_tag,function(x){return x.p},function(x){var d=new Date(x.t+'T12:00:00');return d.getDate()+'. '+(d.getMonth()+1)+'.'},function(x){return x.min+' '+T('Min.')});
-  var JP=j.je_person||[];
-  if(JP.length){var fz=function(t){if(!t)return'–';var d=new Date(t);return d.toLocaleString('de-AT',{timeZone:'Asia/Ho_Chi_Minh',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})};
-   h+='<h4>'+T('Je Person')+'</h4><div class="ustw"><table class="ust"><thead><tr><th>'+T('Name')+'</th><th>'+T('zuletzt')+'</th><th>'+T('Min.')+'</th><th>'+T('Klicks')+'</th><th>🔔</th><th>📷</th><th>✓</th><th>🍽</th><th>'+T('Gerät')+'</th></tr></thead><tbody>'
-    +JP.map(function(p){return '<tr'+(p.zuletzt?'':' class="usnone"')+'><td>'+esc(p.n)+'<small>'+(p.h==='sig'?'Signature':'Lapis')+(p.hl?' · Ha Long':'')+'</small></td><td>'+fz(p.zuletzt)+'</td><td>'+p.min+'</td><td>'+p.klicks+'</td><td>'+(p.push?'✓':'')+'</td><td>'+(p.fotos||'')+'</td><td>'+(p.bin_da||'')+'</td><td>'+(p.essen_ab||'')+'</td><td>'+esc((p.geraet||'')+(p.sprache?' '+p.sprache.toUpperCase():''))+'</td></tr>'}).join('')+'</tbody></table></div>'
-    +'<p class="usx">'+T('Min. = Minuten mit offener App. ✓ = Bin-da-Meldungen, 🍽 = Abmeldungen vom Essen.')+'</p><button type="button" class="knopf uscsv">'+T('Alles als Tabelle herunterladen')+'</button>';
-   w.__csv=function(){var K=['Name','Hotel','Ha Long','zuerst angemeldet','zuletzt aktiv','Anmeldungen','Minuten aktiv','Klicks','Benachrichtigungen','Fotos','Bin da','Essen abgemeldet','Gerät','Sprache'];
-    var q=function(v){v=v==null?'':String(v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-    var L=[K.join(';')].concat(JP.map(function(p){return[p.n,p.h==='sig'?'Signature':'The Lapis',p.hl?'ja':'nein',fz(p.erste),fz(p.zuletzt),p.anmeldungen,p.min,p.klicks,p.push?'ja':'nein',p.fotos,p.bin_da,p.essen_ab,p.geraet||'',p.sprache||''].map(q).join(';')}));
-    var bl=new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='WKO Hanoi App Nutzung.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}}
-  var g=Object.keys(j.geraete||{}),sp=Object.keys(j.sprachen||{});
-  if(g.length)h+='<p class="usx">📱 '+g.map(function(k){return esc(k)+' '+j.geraete[k]}).join(' · ')+'</p>';
-  if(sp.length)h+='<p class="usx">🌐 '+sp.map(function(k){return k.toUpperCase()+' '+j.sprachen[k]}).join(' · ')+'</p>';
-  h+='<p class="usx usk2">'+T('Gezählt wird ohne Standort und ohne Inhalte.')+(j.seit?' '+T('Seit')+' '+new Date(j.seit).toLocaleString('de-AT',{timeZone:'Asia/Ho_Chi_Minh',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})+'.':' '+T('Die Zählung beginnt jetzt.'))+'</p>';
+  var JP=j.je_person||[],nie=JP.filter(function(p){return!p.benutzt});
+  var h='<div class="usk"><div><b>'+j.angemeldet+'/'+j.reisende+'</b><span>'+T('benutzen die App')+'</span></div><div><b>'+nie.length+'</b><span>'+T('noch nie')+'</span></div></div>';
+  if(nie.length)h+='<p class="usnie"><b>'+T('Noch nie angemeldet:')+'</b> '+nie.map(function(p){return esc(p.n)}).join(', ')+'</p>';
+  h+='<h4>'+T('Je Person: aufgerufene Seiten')+'</h4><div class="ustw"><table class="ust" style="min-width:0"><thead><tr><th>'+T('Name')+'</th><th>'+T('Seiten')+'</th></tr></thead><tbody>'
+   +JP.map(function(p){return '<tr'+(p.benutzt?'':' class="usnone"')+'><td>'+esc(p.n)+'<small>'+(p.h==='sig'?'Signature':'Lapis')+'</small></td><td>'+(p.benutzt?p.seiten:T('nie angemeldet'))+'</td></tr>'}).join('')+'</tbody></table></div>';
+  var TY={tab:'▸ ',kachel:'▣ ',auf:'▾ ',tag:'📅 ',klick:''};
+  if(j.seiten&&j.seiten.length)h+='<h4>'+T('Welche Seiten, alle zusammen')+'</h4>'+balken(j.seiten,function(x){return x.n},function(x){return(TY[x.e]||'')+(x.e==='tab'?T(TABN[x.z]||x.z):x.e==='tag'?x.z.slice(1)+'. Nov':x.z)},function(x){return x.p+' '+T('Pers.')});
+  h+='<button type="button" class="knopf uscsv">'+T('Als Tabelle herunterladen')+'</button><p class="usx usk2">'+T('Gezählt wird nur, wer die App benutzt und welche Seiten aufgerufen werden, ohne Uhrzeit. Gelöscht am 10.12.2026.')+'</p>';
+  w.__csv=function(){var q=function(v){v=v==null?'':String(v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+   var L=['Name;Hotel;App benutzt;Seiten aufgerufen'].concat(JP.map(function(p){return[p.n,p.h==='sig'?'Signature':'The Lapis',p.benutzt?'ja':'nein',p.seiten].map(q).join(';')}));
+   var bl=new Blob(['﻿'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='WKO Hanoi App Nutzung.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)};
   el.innerHTML=h;var cb=el.querySelector('.uscsv');if(cb)cb.onclick=function(){w.__csv&&w.__csv()};try{window.__i18nApply&&window.__i18nApply(el)}catch(e){}},function(){w.querySelector('.usl').textContent=T('Nicht erreichbar. Bitte mit Internet nochmal.')})};
 })();</script><script id="wkodajs">(function(){
 var API='https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/hanoi-app',K='tb-wko-da',I=window.__wkoIch;
