@@ -1,0 +1,180 @@
+/* Desk v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
+:root {
+  --rot: #7a1f2e;
+  --rot-hell: #a8303f;
+  --papier: #f6f4f0;
+  --flaeche: #ffffff;
+  --tinte: #1c1a17;
+  --grau: #6b665f;
+  --linie: #e1ddd5;
+  --gruen: #2e7d4f;
+  --gelb: #b7791f;
+  --rotton: #c0392b;
+  --blau: #2b5b8a;
+  --schatten: 0 1px 2px rgba(0,0,0,.06);
+  --radius: 10px;
+  --menue: 220px;
+  --liste: 400px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --papier: #141311;
+    --flaeche: #1f1d1a;
+    --tinte: #ece8e1;
+    --grau: #a39d94;
+    --linie: #2f2c28;
+    --rot: #c4475a;
+    --rot-hell: #d86a7a;
+    --schatten: 0 1px 2px rgba(0,0,0,.4);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--papier); color: var(--tinte); font: 15px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+a { color: var(--rot); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button { font: inherit; }
+h1, h2, h3 { margin: 0 0 .5rem; font-weight: 600; line-height: 1.25; }
+h1 { font-size: 1.35rem; }
+h2 { font-size: 1.1rem; }
+h3 { font-size: 1rem; }
+p { margin: 0 0 .6rem; }
+.dim { color: var(--grau); }
+.klein { font-size: .85rem; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; }
+.rechts { text-align: right; }
+.nowrap { white-space: nowrap; }
+.versteckt { display: none !important; }
+.optional-inv { display: none; }
+
+/* Grundraster */
+.app { min-height: 100vh; display: grid; grid-template-columns: var(--menue) 1fr; }
+.menue { background: var(--flaeche); border-right: 1px solid var(--linie); padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+.menue .marke { display: flex; align-items: baseline; gap: 8px; padding: 6px 10px 14px; }
+.menue .marke b { color: var(--rot); font-size: 1.15rem; letter-spacing: .02em; }
+.menue .marke span { color: var(--grau); font-size: .8rem; }
+.menue a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--tinte); }
+.menue a .ico { width: 22px; text-align: center; font-size: 1rem; }
+.menue a.aktiv { background: color-mix(in srgb, var(--rot) 10%, transparent); color: var(--rot); font-weight: 600; }
+.menue a:hover { text-decoration: none; background: color-mix(in srgb, var(--rot) 6%, transparent); }
+.menue .fuss { margin-top: auto; padding: 10px; color: var(--grau); font-size: .78rem; line-height: 1.4; }
+.inhalt { min-width: 0; padding: 18px 22px 60px; }
+.inhalt.zwei { display: grid; grid-template-columns: var(--liste) 1fr; gap: 22px; align-items: start; }
+.inhalt.zwei > .spalte { min-width: 0; }
+
+/* Karten und Tabellen */
+.karte { background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; box-shadow: var(--schatten); }
+.karte h2, .karte h3 { margin-top: 0; }
+.kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.kopf h1, .kopf h2 { margin: 0; }
+.reihe { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tabelle { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.tabelle th { text-align: left; color: var(--grau); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--linie); white-space: nowrap; }
+.tabelle td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical-align: top; }
+.tabelle tr:last-child td { border-bottom: 0; }
+.tabelle tr.klick { cursor: pointer; }
+.tabelle tr.klick:hover td { background: color-mix(in srgb, var(--rot) 5%, transparent); }
+.tabelle tr.gewaehlt td { background: color-mix(in srgb, var(--rot) 9%, transparent); }
+.abschnitt { padding: 10px 0; border-top: 1px solid var(--linie); }
+.abschnitt:first-of-type { border-top: 0; }
+.zahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.zahl { background: var(--papier); border-radius: 8px; padding: 10px 12px; }
+.zahl b { display: block; font-size: 1.3rem; }
+.zahl span { color: var(--grau); font-size: .8rem; }
+ol.ablauf { padding-left: 1.3rem; margin: 0; }
+ol.ablauf li { margin: 3px 0; }
+dl.fakten { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+dl.fakten dt { color: var(--grau); }
+dl.fakten dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+/* Knöpfe (Schaltflächen) */
+.knopf { background: var(--rot); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
+.knopf:hover { background: var(--rot-hell); }
+.knopf:disabled { opacity: .45; cursor: not-allowed; }
+.knopf.still { background: transparent; color: var(--tinte); border: 1px solid var(--linie); font-weight: 500; }
+.knopf.still:hover { background: color-mix(in srgb, var(--rot) 6%, transparent); }
+.knopf.klein { padding: 4px 10px; font-size: .85rem; }
+.knopf.gefahr { background: var(--rotton); }
+
+/* Ampel, Marken */
+.ampel { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--grau); margin-right: 6px; vertical-align: middle; }
+.ampel.gruen { background: var(--gruen); }
+.ampel.gelb { background: var(--gelb); }
+.ampel.rot { background: var(--rotton); }
+.ampel.blau { background: var(--blau); animation: puls 1.2s infinite; }
+@keyframes puls { 50% { opacity: .35; } }
+.marke { display: inline-block; font-size: .75rem; padding: 2px 7px; border-radius: 999px; background: var(--papier); color: var(--grau); border: 1px solid var(--linie); white-space: nowrap; }
+.marke.an { color: var(--gruen); border-color: color-mix(in srgb, var(--gruen) 40%, transparent); }
+.marke.aus { color: var(--grau); }
+.marke.stand-GEBAUT, .marke.stand-GETESTET { color: var(--blau); }
+.marke.stand-ZURUECKGELESEN, .marke.stand-PRODUKTIV { color: var(--gruen); }
+.marke.stand-GESTRICHEN { text-decoration: line-through; }
+.fehler { color: var(--rotton); }
+.ok { color: var(--gruen); }
+.hinweis { background: color-mix(in srgb, var(--gelb) 12%, transparent); border: 1px solid color-mix(in srgb, var(--gelb) 40%, transparent); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; }
+.hinweis.rot { background: color-mix(in srgb, var(--rotton) 10%, transparent); border-color: color-mix(in srgb, var(--rotton) 40%, transparent); }
+.hinweis.gruen { background: color-mix(in srgb, var(--gruen) 10%, transparent); border-color: color-mix(in srgb, var(--gruen) 40%, transparent); }
+
+/* Schalter */
+.schalter { position: relative; width: 40px; height: 22px; border-radius: 999px; background: var(--linie); border: 0; cursor: pointer; padding: 0; flex: none; }
+.schalter::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.schalter.an { background: var(--gruen); }
+.schalter.an::after { left: 21px; }
+
+/* Eingaben */
+input[type=text], input[type=email], textarea { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); color: var(--tinte); }
+textarea { resize: vertical; }
+.einstellung { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; padding: 8px 0; border-top: 1px solid var(--linie); }
+.einstellung:first-child { border-top: 0; }
+.einstellung .name { font-weight: 600; }
+.einstellung .wert { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; overflow-wrap: anywhere; }
+
+/* Knopfliste */
+.bereich-titel { color: var(--grau); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 6px; }
+.knopfzeile { display: grid; grid-template-columns: 18px 32px 1fr auto; gap: 8px; align-items: center; padding: 8px 8px; border-radius: 8px; cursor: pointer; }
+.knopfzeile:hover { background: color-mix(in srgb, var(--rot) 5%, transparent); }
+.knopfzeile.gewaehlt { background: color-mix(in srgb, var(--rot) 9%, transparent); }
+.knopfzeile .nr { color: var(--grau); font-size: .8rem; }
+.knopfzeile .titel { min-width: 0; }
+.knopfzeile .titel small { display: block; color: var(--grau); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.knopfzeile .aktion { display: flex; gap: 6px; align-items: center; }
+
+/* Anmeldung */
+.anmeldung { max-width: 420px; margin: 12vh auto 0; }
+.anmeldung .marke b { font-size: 1.6rem; color: var(--rot); }
+
+/* dialog */
+dialog { border: 1px solid var(--linie); border-radius: var(--radius); padding: 18px; background: var(--flaeche); color: var(--tinte); max-width: 440px; width: calc(100% - 32px); }
+dialog::backdrop { background: rgba(0,0,0,.35); }
+.dlg-knoepfe { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+/* Ladezustand */
+.laden { color: var(--grau); padding: 10px 0; }
+.laden::before { content: ""; display: inline-block; width: 12px; height: 12px; border: 2px solid var(--linie); border-top-color: var(--rot); border-radius: 50%; margin-right: 8px; vertical-align: middle; animation: dreh .8s linear infinite; }
+@keyframes dreh { to { transform: rotate(360deg); } }
+
+/* Mittel: Menü eingeklappt, Liste und Vorgang */
+@media (max-width: 1099px) {
+  :root { --menue: 60px; --liste: 320px; }
+  .menue { padding: 12px 6px; }
+  .menue .marke span, .menue a .text, .menue .fuss .lang { display: none; }
+  .menue .marke { justify-content: center; padding: 6px 0 12px; }
+  .menue a { justify-content: center; padding: 10px 0; }
+  .menue .fuss { text-align: center; padding: 6px 0; }
+}
+/* Schmal: eine Spalte, Menü unten */
+@media (max-width: 699px) {
+  .app { grid-template-columns: 1fr; }
+  .menue { position: fixed; left: 0; right: 0; bottom: 0; top: auto; height: auto; flex-direction: row; justify-content: space-around; border-right: 0; border-top: 1px solid var(--linie); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index: 5; }
+  .menue .marke, .menue .fuss { display: none; }
+  .menue a { flex-direction: column; gap: 2px; font-size: .7rem; padding: 4px 6px; }
+  .menue a .text { display: block; }
+  .inhalt { padding: 12px 12px 90px; }
+  .inhalt.zwei { grid-template-columns: 1fr; }
+  .inhalt.zwei > .spalte.nebensache { display: none; }
+  .tabelle { font-size: .85rem; }
+  .tabelle .optional { display: none; }
+  .optional-inv { display: block; }
+  .zahlen { grid-template-columns: repeat(2, 1fr); }
+  .knopfzeile { grid-template-columns: 18px 1fr auto; }
+  .knopfzeile .nr { display: none; }
+}
