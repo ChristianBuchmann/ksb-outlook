@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Tourneeplan Hanoi 2026</title>
-<meta name="tb-version" content="0b31114a">
+<meta name="tb-version" content="ad88a5fc">
 <style>
 :root{--wine:var(--wine);--ink:#2B2F33;--grey:#6B6F75;--paper:#F7F1E6;--teal:#1F6F68;--line:#E6DECF}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1363,7 +1363,7 @@ function locate(){
 
 /* ---------- Updates ---------- */
 (function(){
- var V='0b31114a';if(V.indexOf('__')===0)return;
+ var V='ad88a5fc';if(V.indexOf('__')===0)return;
  var busy=false,bn=null,tt=null,laedt=false,T0=Date.now();
  function toast(m,ms){try{var e=document.getElementById('tbtoast');if(!e){e=document.createElement('div');e.id='tbtoast';e.setAttribute('role','status');e.style.cssText='position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9500;background:#2B2F33;color:#fff;border-radius:99px;padding:12px 18px;font:600 15px -apple-system,BlinkMacSystemFont,sans-serif;max-width:88vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.35);transition:opacity .25s;pointer-events:none';document.body.appendChild(e)}e.textContent=m;e.style.opacity='1';clearTimeout(tt);tt=setTimeout(function(){e.style.opacity='0'},ms||3200)}catch(x){}}
  window.__tbToast=toast;
@@ -3186,6 +3186,71 @@ window.__wkoStatistik=function(){var B=window.__wkoBlatt;if(!B)return;senden();
    var L=['Name;Hotel;App benutzt;Seiten aufgerufen'].concat(JP.map(function(p){return[p.n,p.h==='sig'?'Signature':'The Lapis',p.benutzt?'ja':'nein',p.seiten].map(q).join(';')}));
    var bl=new Blob(['﻿'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='WKO Hanoi App Nutzung.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)};
   el.innerHTML=h;var cb=el.querySelector('.uscsv');if(cb)cb.onclick=function(){w.__csv&&w.__csv()};try{window.__i18nApply&&window.__i18nApply(el)}catch(e){}},function(){w.querySelector('.usl').textContent=T('Nicht erreichbar. Bitte mit Internet nochmal.')})};
+})();</script><style id="buscss">
+.busrot{margin:12px 16px 4px;background:#B3261E;color:#fff;border-radius:16px;padding:14px 16px;font:500 16px/1.4 -apple-system,system-ui,sans-serif;box-shadow:0 4px 14px rgba(179,38,30,.35)}
+.busrot b{display:block;font-size:19px;margin-bottom:4px}
+#buspop{position:fixed;inset:0;z-index:9600;background:rgba(5,6,20,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+#buspop .fc{background:#B3261E;color:#fff;border-radius:18px;padding:20px 18px 16px;max-width:420px;font:500 17px/1.45 -apple-system,system-ui,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+#buspop b{display:block;font-size:22px;line-height:1.25;margin-bottom:8px}
+#buspop button{display:block;width:100%;margin-top:14px;border:0;border-radius:12px;padding:13px;background:#fff;color:#B3261E;font:800 17px -apple-system,system-ui,sans-serif;cursor:pointer}
+.busl{margin:12px 16px 4px;background:#fff;color:#2B2F33;border-radius:16px;padding:14px 14px 10px;font:500 15px -apple-system,system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.busl h3{margin:0;font:700 18px -apple-system,system-ui,sans-serif;color:#111333}
+.busl .bsub{color:#6B6F75;font-size:13.5px;margin:2px 0 10px}
+.busl .bz{font:800 26px -apple-system,system-ui,sans-serif;color:#B3261E;margin:0 0 8px}.busl .bz.ok{color:#1E7B45}
+.busl .bok{background:#1E7B45;color:#fff;border-radius:12px;padding:12px;font-weight:700;font-size:17px;margin:0 0 10px;text-align:center}
+.busl .bp{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;border:1.5px solid #E1DACB;background:#FBF7EE;border-radius:12px;padding:11px 12px;margin:0 0 6px;font:600 16px -apple-system,system-ui,sans-serif;color:#2B2F33;text-align:left;cursor:pointer}
+.busl .bp i{font-style:normal;width:26px;height:26px;border-radius:50%;border:2px solid #B3261E;flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+.busl .bp.da{background:#E8F4EC;border-color:#1E7B45}.busl .bp.da i{background:#1E7B45;border-color:#1E7B45}
+.busl .bp span{flex:1}.busl .bp small{display:block;font-weight:500;font-size:12px;color:#6B6F75}
+.busl .bh{color:#6B6F75;font-size:12.5px;margin-top:6px}
+</style><script id="busjs">(function(){
+var API='https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/hanoi-app',K='tb-wko-bus';
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var I=window.__wkoIch;if(!I||I.g||!ls('tb-wko-token'))return;
+var S;try{S=JSON.parse(ls(K)||'null')||{}}catch(e){S={}}S.q=S.q||[];
+function save(){ls(K,JSON.stringify(S))}
+function L(){var l=ls('tb-wko-lang')||'de';return l==='en'||l==='vi'?l:'de'}
+function jetzt(){var q=/[?&]tt=(\d+)T(\d+):(\d+)/.exec(location.search||'');if(q)return new Date(2026,10,+q[1],+q[2],+q[3],0);try{return tbNow()}catch(e){return new Date()}}
+function phase(){var n=jetzt();if(n.getFullYear()!==2026||n.getMonth()!==10)return 0;var d=n.getDate(),h=n.getHours()+n.getMinutes()/60;if(d===8)return 1;if(d===9&&h<9.5)return 2;return 0}
+var WER={lap:{n:'Doris',h:'Lapis'},sig:{n:'Johanna Lacroix',h:'Signature'}};
+function heuteEl(){return document.getElementById('heute')}
+function platz(id,cls){var hs=heuteEl();if(!hs||!hs.parentNode)return null;var e=document.getElementById(id);
+ if(!e){e=document.createElement('div');e.id=id;e.className=cls;var t=hs.getAttribute('data-tab')||(hs.closest&&hs.closest('[data-tab]')&&hs.closest('[data-tab]').getAttribute('data-tab'))||'heute';e.setAttribute('data-tab',t)}
+ var bl=document.getElementById('busl'),ziel=id==='busrot'&&bl&&bl.parentNode===hs.parentNode?bl:hs;if(e.nextSibling!==ziel)hs.parentNode.insertBefore(e,ziel);
+ return e}
+function weg(id){var e=document.getElementById(id);if(e&&e.parentNode)e.parentNode.removeChild(e)}
+function rot(){var p=phase();if(!p||I.ha_long!==true){weg('busrot');return}
+ var w=WER[I.hotel],l=L(),wann=p===1?{de:'morgen, Montag',en:'tomorrow, Monday',vi:'sáng mai'}[l]:{de:'heute',en:'today',vi:'hôm nay'}[l];
+ var ich=S.p&&S.p.hotel===I.hotel,h;
+ if(l==='en')h='<b>⚠️ Bus departure '+wann+' at 8:00 sharp</b>'+(w?(ich?'You check who is on the bus at the '+w.h+'. Your list is right below.':'Please check in with '+esc(w.n)+' at the bus. She checks that everyone from the '+w.h+' is there.'):'Please be at the bus on time.');
+ else if(l==='vi')h='<b>⚠️ Xe buýt khởi hành '+wann+' lúc 8:00, xin đúng giờ</b>'+(w?'Vui lòng báo với '+esc(w.n)+' tại xe buýt ('+w.h+').':'');
+ else h='<b>⚠️ Achtung: Busabfahrt '+wann+' um 8:00 Uhr pünktlich</b>'+(w?(ich?'Du prüfst am Bus, ob alle aus dem '+w.h+' da sind. Deine Liste ist gleich hier unten.':'Bitte melde Dich beim Bus bei '+esc(w.n)+' an. Sie prüft, ob alle aus dem '+w.h+' da sind.'):'Bitte pünktlich beim Bus sein.');
+ var e=platz('busrot','busrot');if(e&&e.getAttribute('data-h')!==h){e.setAttribute('data-h',h);e.innerHTML=h}
+ if(S.pop!==p&&!document.getElementById('buspop')){var o=document.createElement('div');o.id='buspop';o.setAttribute('role','dialog');
+  o.innerHTML='<div class="fc">'+h+'<button type="button">'+(l==='en'?'Got it':l==='vi'?'Đã hiểu':'Verstanden')+'</button></div>';
+  o.querySelector('button').onclick=function(){S.pop=p;save();o.parentNode.removeChild(o);var r=document.getElementById('busrot');if(r&&r.scrollIntoView)r.scrollIntoView({block:'center',behavior:'smooth'})};
+  document.body.appendChild(o);try{navigator.vibrate&&navigator.vibrate([120,80,120])}catch(x){}}}
+function stand(){var m={};(S.p&&S.p.da||[]).forEach(function(x){if(x.st==='da')m[x.k]=1});S.q.forEach(function(o){if(o.weg)delete m[o.k];else m[o.k]=1});return m}
+function liste(){var P=S.p;if(!P||!P.personen||!phase()){weg('busl');return}
+ var m=stand(),selbst={};(P.selbst||[]).forEach(function(x){selbst[x.k]=x.st});var n=P.personen.length,da=P.personen.filter(function(p){return m[p.k]}).length,en=L()==='en';
+ var w=WER[P.hotel]||{h:P.hotel};
+ var h='<h3>🚌 '+(en?'Bus list Ha Long':'Busliste Ha-Long')+' · '+esc(w.h)+'</h3><div class="bsub">'+(en?'Mon 9 Nov, departure 8:00. Tap a name when the person is there.':'Mo 9. Nov, Abfahrt 8:00. Namen antippen, wenn die Person da ist.')+'</div>'
+  +'<div class="bz'+(da===n?' ok':'')+'">'+da+' '+(en?'of':'von')+' '+n+' '+(en?'here':'da')+'</div>'
+  +(n&&da===n?'<div class="bok">✓ '+(en?'Everyone is here. The bus can leave.':'Alle sind da. Ihr könnt abfahren.')+'</div>':'')
+  +P.personen.map(function(p){var d=!!m[p.k],s=selbst[p.k];return'<button type="button" class="bp'+(d?' da':'')+'" data-bk="'+esc(p.k)+'"><i>'+(d?'✓':'')+'</i><span>'+esc(p.n)+(s&&!d?'<small>'+(s==='nicht'?(en?'reported: not coming':'hat gemeldet: fährt nicht mit'):(en?'reported: on the bus':'hat gemeldet: im Bus'))+'</small>':'')+'</span></button>'}).join('')
+  +'<div class="bh">'+(S.q.length?(en?'Saved on this phone, will be sent when online.':'Im Handy gespeichert, geht raus, sobald Internet da ist.'):(en?'Saved. Others with this list see the same.':'Gespeichert.'))+'</div>';
+ var e=platz('busl','busl');if(e&&e.getAttribute('data-h')!==h){e.setAttribute('data-h',h);e.innerHTML=h}}
+function zeichnen(){try{rot();liste()}catch(e){}}
+var laeuft=false;
+function sync(){if(laeuft||navigator.onLine===false||!phase())return;var t=ls('tb-wko-token');if(!t)return;laeuft=true;var ops=S.q.slice(0,100);
+ fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'da_sync',token:t,ops:ops}),cache:'no-store'}).then(function(r){return r.json()}).then(function(j){laeuft=false;if(!j||!j.ok)return;
+  S.q=S.q.slice(ops.length);S.p=j.pruef||null;save();zeichnen();if(S.q.length)setTimeout(sync,400)}).catch(function(){laeuft=false})}
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#busl .bp');if(!b)return;e.preventDefault();var k=b.getAttribute('data-bk'),m=stand();
+ S.q.push(m[k]?{ab:S.p.ab,k:k,weg:true,zeit:new Date().toISOString()}:{ab:S.p.ab,k:k,st:'da',zeit:new Date().toISOString()});
+ if(S.p&&S.p.da){if(m[k])S.p.da=S.p.da.filter(function(x){return x.k!==k})}save();zeichnen();try{navigator.vibrate&&navigator.vibrate(30)}catch(x){}sync()},true);
+zeichnen();sync();setInterval(function(){zeichnen()},3000);setInterval(function(){if(!document.hidden)sync()},20000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden){zeichnen();sync()}});window.addEventListener('online',sync);
 })();</script><script id="wkodajs">(function(){
 var API='https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/hanoi-app',K='tb-wko-da',I=window.__wkoIch;
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
