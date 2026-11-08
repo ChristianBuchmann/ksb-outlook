@@ -4,7 +4,7 @@
 
 const VERSION = 13;
 const API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk';
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqYnZscnp0YmVqeW1ycWN0b3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNjMwMjgsImV4cCI6MjEwNDczOTAyOH0.QsKHyM8YgztRFoLQ5Wxn7WrzhCGc7RfuMSBs28eiCm8';
+// Kein Schlüssel in der Seite: die Serverfunktion desk ist wie die Seitenleiste ohne JWT-Prüfung erreichbar, jeder Aufruf braucht die Sitzung.
 const SITZUNG_KEY = 'desk.sitzung';
 const BEREICHE = { MAILS: 'Mails und Entwürfe', MELDUNGEN: 'Meldungen an Dich', FINANZ: 'Finanz und Rechnungen', RECHT: 'Verträge und Rechtliches', MATERIAL: 'Künstlermaterial', KAMPAGNEN: 'Kampagnen und Akquise', SOCIAL: 'Social Media', YOOL: 'YOOL und Tourneen', PRIVAT: 'Privat', STEUERUNG: 'Steuerung und Technik' };
 const BEREICH_REIHE = ['MAILS', 'MELDUNGEN', 'KAMPAGNEN', 'FINANZ', 'RECHT', 'MATERIAL', 'SOCIAL', 'YOOL', 'PRIVAT', 'STEUERUNG'];
@@ -64,7 +64,7 @@ const breit = () => window.matchMedia('(min-width: 1100px)').matches;
 async function api(aufruf, args = {}, opt = {}) {
   const r = await fetch(API, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ANON, apikey: ANON, 'x-desk-sitzung': S.sitzung },
+    headers: { 'content-type': 'application/json', 'x-desk-sitzung': S.sitzung },
     body: JSON.stringify({ aufruf, args }),
     signal: AbortSignal.timeout(opt.timeout || 30_000),
   });
