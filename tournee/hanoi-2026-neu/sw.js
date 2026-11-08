@@ -66,6 +66,8 @@ self.addEventListener('fetch',function(e){
   if(u.hostname==='tile.openstreetmap.org'){e.respondWith(kachel(u.href));return}
   return}
  if(u.href.indexOf(SC)!==0)return;
+ /* 08.11.2026: die Probefassung unter tour/ hat ihren eigenen Dienst */
+ if(u.href.indexOf(SC+'tour/')===0||u.href===SC+'tour')return;
  if(u.pathname.slice(-16)==='/tb-version.json')return;
  var seite=r.mode==='navigate'||u.pathname.slice(-11)==='/index.html'||u.href.split('?')[0]===SC;
  if(seite){
