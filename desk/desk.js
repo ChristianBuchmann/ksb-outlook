@@ -1,8 +1,9 @@
-// Desk v13 (09.11.2026). Die Hülle des neuen Desk: Anmeldung per Mail-Link, Seiten Heute, Knöpfe, Ablage, Steuerung.
+// Desk v14 (09.11.2026). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
+// Heute, Knöpfe und Steuerung liegen hinter „Technik“ (Christian 09.11.2026: sauber und einfach, ein Knopf, nichts im Weg).
 // Bauplan Desk Fassung 4, Abschnitte 2.1 bis 2.7. Reine Dateien, kein Build. Datenbank nur über die Serverfunktion desk.
 // Erster Knopf: 7 Postfach ablegen (Christian 09.11.2026).
 
-const VERSION = 13;
+const VERSION = 14;
 const API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk';
 // Kein Schlüssel in der Seite: die Serverfunktion desk ist wie die Seitenleiste ohne JWT-Prüfung erreichbar, jeder Aufruf braucht die Sitzung.
 const SITZUNG_KEY = 'desk.sitzung';
@@ -57,17 +58,23 @@ function ampel(k) {
   return 'gelb';
 }
 function nav(hash) { location.hash = hash; }
-function route() { const t = (location.hash || '#heute').replace(/^#/, '').split('/'); return { seite: t[0] || 'heute', arg: t.slice(1).join('/') }; }
+function route() { const t = (location.hash || '#ablage').replace(/^#/, '').split('/'); return { seite: t[0] || 'ablage', arg: t.slice(1).join('/') }; }
+const TECHNIK = new Set(['technik', 'heute', 'knoepfe', 'knopf', 'steuerung']);
+// Safari meldet abgebrochene Abfragen als „Load failed“, Chrome als „Failed to fetch“: beides heißt keine Verbindung
+function fehlerText(e) { const t = String(e?.message || e || ''); return /load failed|failed to fetch|networkerror|network request failed|timed out|aborted/i.test(t) ? 'Keine Verbindung zum Server. Bitte noch einmal versuchen.' : t; }
 const breit = () => window.matchMedia('(min-width: 1100px)').matches;
 
 // ---------- Schnittstelle ----------
 async function api(aufruf, args = {}, opt = {}) {
-  const r = await fetch(API, {
+  let r;
+  try {
+    r = await fetch(API, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-desk-sitzung': S.sitzung },
     body: JSON.stringify({ aufruf, args }),
     signal: AbortSignal.timeout(opt.timeout || 30_000),
-  });
+    });
+  } catch (e) { throw new Error(fehlerText(e)); }
   let j = {};
   try { j = await r.json(); } catch { j = { ok: false, fehler: `Antwort ${r.status} ohne Inhalt` }; }
   if (r.status === 401 && j.anmelden) { abmeldenLokal(); render(); throw new Error('Nicht angemeldet'); }
@@ -78,12 +85,12 @@ function abmeldenLokal() { S.sitzung = ''; S.wer = null; S.lage = null; S.heute 
 
 async function ladeLage(still) {
   if (!still) S.laden.lage = true;
-  try { S.lage = await api('lage'); S.lageAm = Date.now(); S.fehler = null; }
-  catch (e) { S.fehler = e.message; }
+  try { S.lage = await api('lage'); S.lageAm = Date.now(); if (!still) S.fehler = null; }
+  catch (e) { if (!still) S.fehler = e.message; }
   S.laden.lage = false;
 }
-async function ladeHeute() { S.laden.heute = true; try { S.heute = await api('heute'); } catch (e) { S.fehler = e.message; } S.laden.heute = false; }
-async function ladeKnopf(s) { S.laden['knopf:' + s] = true; try { S.knopf[s] = await api('knopf', { schluessel: s }); } catch (e) { S.fehler = e.message; } S.laden['knopf:' + s] = false; }
+async function ladeHeute(still) { S.laden.heute = true; try { S.heute = await api('heute'); } catch (e) { if (!still) S.fehler = e.message; } S.laden.heute = false; }
+async function ladeKnopf(s, still) { S.laden['knopf:' + s] = true; try { S.knopf[s] = await api('knopf', { schluessel: s }); } catch (e) { if (!still) S.fehler = e.message; } S.laden['knopf:' + s] = false; }
 
 // ---------- Grund-Dialog ----------
 const dlg = document.getElementById('dlg');
@@ -138,9 +145,9 @@ async function ablageVorschau() {
   catch (e) { S.fehler = e.message; }
   S.laden.vorschau = false; render();
 }
-async function ablageProtokoll(laufId) {
+async function ablageProtokoll(laufId, still) {
   try { S.ablage.protokoll = await api('ablage_protokoll', laufId ? { lauf_id: laufId } : {}); }
-  catch (e) { S.fehler = e.message; }
+  catch (e) { if (!still) S.fehler = e.message; }
 }
 async function ablageZurueck(z) {
   if (!confirm(`„${z.betreff}“ zurück nach ${z.ordner || 'Posteingang'}?\nKennzeichen weg, Gelesen und Fahne wie vorher.`)) return;
@@ -159,7 +166,7 @@ async function einloesen(token) {
   try {
     const r = await api('anmeldung_einloesen', { token });
     S.sitzung = r.sitzung; localStorage.setItem(SITZUNG_KEY, r.sitzung); S.wer = { email: r.email, name: r.name };
-    history.replaceState(null, '', location.pathname + '#heute');
+    history.replaceState(null, '', location.pathname + '#ablage');
   } catch (e) { S.fehler = 'Anmeldung: ' + e.message; history.replaceState(null, '', location.pathname + '#anmelden'); }
 }
 async function abmelden() { try { await api('abmelden'); } catch { /* egal */ } abmeldenLokal(); nav('anmelden'); render(); }
@@ -172,11 +179,11 @@ function pollen() {
     if (!S.sitzung) return;
     await ladeLage(true);
     const { seite, arg } = route();
-    if (seite === 'heute') await ladeHeute();
-    if (seite === 'knopf' && arg) await ladeKnopf(arg);
+    if (seite === 'heute') await ladeHeute(true);
+    if (seite === 'knopf' && arg) await ladeKnopf(arg, true);
     if (S.ablage.laeuft) {
       const k7 = (S.lage?.knoepfe || []).find((k) => k.schluessel === 'postfach_ablegen');
-      if (k7 && !k7.offen) { await ablageProtokoll(S.ablage.laeuft); S.ablage.laeuft = null; S.ablage.meldung = S.ablage.protokoll?.lauf?.ergebnis ? `Ablage fertig: ${S.ablage.protokoll.lauf.ergebnis}` : 'Ablage fertig.'; }
+      if (k7 && !k7.offen) { await ablageProtokoll(S.ablage.laeuft, true); S.ablage.laeuft = null; S.ablage.meldung = S.ablage.protokoll?.lauf?.ergebnis ? `Ablage fertig: ${S.ablage.protokoll.lauf.ergebnis}` : 'Ablage fertig.'; }
     }
     render(); pollen();
   }, offen ? 8_000 : 60_000);
@@ -184,10 +191,11 @@ function pollen() {
 
 // ---------- Ansichten ----------
 function menue(seite) {
-  const e = [['heute', '☀', 'Heute'], ['knoepfe', '▦', 'Knöpfe'], ['ablage', '▤', 'Ablage'], ['steuerung', '⚙', 'Steuerung']];
+  // Nur, was fertig ist. Heute kommt ins Menü, wenn der Postmeister steht; jeder weitere Knopf, wenn er arbeitet.
+  const e = [['ablage', '▤', 'Ablage'], ['technik', '⚙', 'Technik']];
   return `<nav class="menue">
     <div class="marke"><b>Desk</b><span>v${VERSION}</span></div>
-    ${e.map(([k, i, t]) => `<a href="#${k}" class="${seite === k || (k === 'knoepfe' && seite === 'knopf') ? 'aktiv' : ''}"><span class="ico">${i}</span><span class="text">${t}</span></a>`).join('')}
+    ${e.map(([k, i, t]) => `<a href="#${k}" class="${seite === k || (k === 'technik' && TECHNIK.has(seite)) ? 'aktiv' : ''}"><span class="ico">${i}</span><span class="text">${t}</span></a>`).join('')}
     <div class="fuss"><span class="lang">${S.wer ? h(S.wer.name) + '<br>' : ''}Stand ${S.lageAm ? wann(S.lageAm, true) : '…'} Wien<br></span>v${VERSION}</div>
   </nav>`;
 }
@@ -259,7 +267,7 @@ function knopfDetail(s) {
   const k = D.knopf, l = D.lage || {};
   const kl = (S.lage?.knoepfe || []).find((x) => x.schluessel === s) || {};
   return `<div class="karte">
-    <div class="kopf"><div><a href="#knoepfe" class="klein">← Knöpfe</a><h1>${k.nummer}. ${h(k.name)}</h1></div>
+    <div class="kopf"><div><a href="#knoepfe" class="klein">← Knöpfe</a> <span class="dim klein">· <a href="#technik">Technik</a></span><h1>${k.nummer}. ${h(k.name)}</h1></div>
       <div class="reihe"><span class="marke stand-${k.stand}">${STAND_TEXT[k.stand] || k.stand}</span><span class="marke">Stufe ${k.stufe}</span><span class="marke">${h(BEREICHE[k.bereich] || k.bereich)}</span><span class="marke">Version ${k.version}</span></div></div>
     <p>${h(k.was)}</p>
     <div class="reihe" style="margin:8px 0 14px">
@@ -303,7 +311,7 @@ function seiteAblage() {
   const kand = V?.kandidaten || [];
   return `<div class="inhalt">
     <div class="kopf"><div><h1>Postfach ablegen</h1><span class="dim klein">Knopf 7 · ${k7 ? `${STAND_TEXT[k7.stand]} · Version ${k7.version} · ${k7.an ? 'an' : 'aus'}` : ''}</span></div>
-      <div class="reihe">${k7 ? `<button class="knopf still klein" data-tu="knopf" data-s="postfach_ablegen">Knopf, Einstellungen, Läufe</button>` : ''}</div></div>
+      <div class="reihe">${k7 ? `<button class="knopf still klein" data-tu="knopf" data-s="postfach_ablegen">Einstellungen und Läufe</button>` : ''}</div></div>
     ${fehlerLeiste()}
     ${S.ablage.meldung ? `<div class="hinweis gruen">${h(S.ablage.meldung)}</div>` : ''}
     <div class="karte">
@@ -354,6 +362,19 @@ function seiteSteuerung() {
   </div>`;
 }
 
+function seiteTechnik() {
+  const L = S.lage;
+  const fehler = (L?.knoepfe || []).filter((k) => k.letzter_ok === false && k.stand !== 'GESTRICHEN').length;
+  return `<div class="inhalt">
+    <div class="kopf"><h1>Technik</h1><span class="dim klein">Desk v${VERSION}</span></div>
+    ${fehlerLeiste()}
+    <p class="dim">Hier liegt die Schaltzentrale: alle Knöpfe des Systems, das Laufwerk, Kosten, Schalter. Zur Kontrolle, nicht zum Arbeiten. Auf die Arbeitsfläche kommt ein Knopf erst, wenn er fertig ist.</p>
+    <div class="karte"><a href="#heute"><h2>Heute</h2></a><p class="dim klein">Entscheidungen, Antwortschuld, Fehler der Knöpfe. Vorschau, bis der Postmeister steht.</p></div>
+    <div class="karte"><a href="#knoepfe"><h2>Knöpfe</h2></a><p class="dim klein">${L ? `${L.knoepfe.filter((k) => k.stand !== 'GESTRICHEN').length} im Verzeichnis${fehler ? `, <span class="fehler">${fehler} mit Fehler</span>` : ''}` : 'wird geladen'}. Stand, letzter Lauf, an/aus mit Grund, Jetzt, Einstellungen, Versionen.</p></div>
+    <div class="karte"><a href="#steuerung"><h2>Steuerung</h2></a><p class="dim klein">Laufwerk, Kosten, Schalter, Anmeldung.</p></div>
+  </div>`;
+}
+
 // ---------- Rendern ----------
 function render() {
   const { seite, arg } = route();
@@ -362,9 +383,9 @@ function render() {
   if (seite === 'heute') inhalt = seiteHeute();
   else if (seite === 'knoepfe') inhalt = seiteKnoepfe(null);
   else if (seite === 'knopf') inhalt = seiteKnoepfe(arg);
-  else if (seite === 'ablage') inhalt = seiteAblage();
+  else if (seite === 'technik') inhalt = seiteTechnik();
   else if (seite === 'steuerung') inhalt = seiteSteuerung();
-  else inhalt = seiteHeute();
+  else inhalt = seiteAblage();
   app.innerHTML = menue(seite) + inhalt;
 }
 
@@ -416,7 +437,7 @@ window.addEventListener('resize', () => { clearTimeout(window.__rs); window.__rs
   const m = location.hash.match(/#t=([A-Za-z0-9_-]{20,})/);
   if (m) { await einloesen(m[1]); }
   if (S.sitzung && !S.wer) { try { const w = await api('wer'); S.wer = { email: w.email, name: w.name }; } catch { /* abgemeldet, zeigt Anmeldung */ } }
-  if (!location.hash || location.hash.startsWith('#t=')) history.replaceState(null, '', location.pathname + '#heute');
+  if (!location.hash || location.hash.startsWith('#t=')) history.replaceState(null, '', location.pathname + '#ablage');
   await seiteLaden();
   pollen();
 })();
