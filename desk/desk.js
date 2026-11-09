@@ -408,7 +408,7 @@ app.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   if (f.dataset.form === 'anmelden') await anmelden(new FormData(f).get('email'));
 });
-window.addEventListener('hashchange', seiteLaden);
+window.addEventListener('hashchange', () => { if (/^#t=/.test(location.hash)) { location.reload(); return; } seiteLaden(); });
 window.addEventListener('resize', () => { clearTimeout(window.__rs); window.__rs = setTimeout(render, 150); });
 
 // ---------- Start ----------
