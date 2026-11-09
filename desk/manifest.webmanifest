@@ -1,0 +1,12 @@
+{
+  "name": "Desk",
+  "short_name": "Desk",
+  "start_url": "./",
+  "display": "browser",
+  "background_color": "#f6f4f0",
+  "theme_color": "#7a1f2e",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
