@@ -1,9 +1,9 @@
-// Desk v16 (09.11.2026; v14 Zuschnitt, v15 Symbol, v16 Manifest: Homescreen-Symbol öffnet Safari). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
+// Desk v17 (10.11.2026; v14 Zuschnitt, v15 Symbol, v16 Manifest: Homescreen-Symbol öffnet Safari, v17 Wecker an jedem Knopf und Seite Presse für Knopf 40). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
 // Heute, Knöpfe und Steuerung liegen hinter „Technik“ (Christian 09.11.2026: sauber und einfach, ein Knopf, nichts im Weg).
 // Bauplan Desk Fassung 4, Abschnitte 2.1 bis 2.7. Reine Dateien, kein Build. Datenbank nur über die Serverfunktion desk.
 // Erster Knopf: 7 Postfach ablegen (Christian 09.11.2026).
 
-const VERSION = 16;
+const VERSION = 17;
 const API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk';
 // Kein Schlüssel in der Seite: die Serverfunktion desk ist wie die Seitenleiste ohne JWT-Prüfung erreichbar, jeder Aufruf braucht die Sitzung.
 const SITZUNG_KEY = 'desk.sitzung';
@@ -19,6 +19,8 @@ const S = {
   heute: null,
   knopf: {},        // schluessel → Detail
   ablage: { vorschau: null, protokoll: null, laeuft: null, meldung: null },
+  presse: { filter: 'neu', daten: null, vorschau: null, laeuft: null, meldung: null, zuletzt: null },
+  wecker: {},       // schluessel → Entwurf des Weckers, bis er gespeichert wird
   laden: {},
   fehler: null,
 };
@@ -42,10 +44,17 @@ function her(ts) {
 }
 function dauer(a, b) { if (!a || !b) return ''; const s = Math.round((new Date(b) - new Date(a)) / 1000); return s < 60 ? `${s} s` : `${Math.round(s / 60)} Min.`; }
 function usd(n) { const x = Number(n || 0); return x ? x.toFixed(2) + ' USD' : '0 USD'; }
+const TAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+function tageText(tage) {
+  if (!tage || tage.length === 7) return 'täglich';
+  const t = [...tage].sort((a, b) => a - b).join(',');
+  if (t === '1,2,3,4,5') return 'werktags';
+  return tage.slice().sort((a, b) => a - b).map((n) => TAGE[n - 1]).join(', ');
+}
 function taktText(t) {
   if (!t) return 'nur von Hand';
   if (t.art === 'MINUTEN') return `alle ${t.alle} Min.${t.von ? ` (${t.von} bis ${t.bis})` : ''}`;
-  if (t.art === 'UHRZEIT') return `${(t.zeiten || []).join(', ')} Uhr${t.tage ? (t.tage.length === 5 ? ' werktags' : ' an Tagen ' + t.tage.join(',')) : ''}`;
+  if (t.art === 'UHRZEIT') return `${(t.zeiten || []).join(', ')} Uhr, ${tageText(t.tage)}`;
   if (t.art === 'NACH') return `nach „${knopfName(t.knopf)}“`;
   return JSON.stringify(t);
 }
@@ -92,6 +101,86 @@ async function ladeLage(still) {
 async function ladeHeute(still) { S.laden.heute = true; try { S.heute = await api('heute'); } catch (e) { if (!still) S.fehler = e.message; } S.laden.heute = false; }
 async function ladeKnopf(s, still) { S.laden['knopf:' + s] = true; try { S.knopf[s] = await api('knopf', { schluessel: s }); } catch (e) { if (!still) S.fehler = e.message; } S.laden['knopf:' + s] = false; }
 
+// ---------- Wecker ----------
+function kanon(x) { return JSON.stringify(x, (k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v)); }
+function weckerEntwurf(k) {
+  const alt = S.wecker[k.schluessel];
+  if (alt && alt.version === k.version) return alt;
+  const t = k.takt || null;
+  const w = { version: k.version, modus: 'aus', zeiten: ['08:00'], tage: [1, 2, 3, 4, 5, 6, 7], alle: 60, von: '', bis: '', nach: '' };
+  if (t?.art === 'UHRZEIT') { w.modus = 'zeit'; w.zeiten = [...(t.zeiten || [])]; w.tage = t.tage ? [...t.tage] : [1, 2, 3, 4, 5, 6, 7]; }
+  else if (t?.art === 'MINUTEN') { w.modus = 'minuten'; w.alle = t.alle; w.von = t.von || ''; w.bis = t.bis || ''; }
+  else if (t?.art === 'NACH') { w.modus = 'nach'; w.nach = t.knopf; }
+  S.wecker[k.schluessel] = w;
+  return w;
+}
+function weckerTakt(w) {
+  if (w.modus === 'aus') return { takt: null };
+  if (w.modus === 'zeit') {
+    const z = [...new Set(w.zeiten.filter(Boolean))].sort();
+    if (!z.length) return { fehler: 'Mindestens eine Uhrzeit.' };
+    if (!w.tage.length) return { fehler: 'Mindestens ein Wochentag.' };
+    const t = { art: 'UHRZEIT', zeiten: z };
+    if (w.tage.length < 7) t.tage = [...w.tage].sort((a, b) => a - b);
+    return { takt: t };
+  }
+  if (w.modus === 'minuten') {
+    const n = Number(w.alle);
+    if (!(n >= 5 && n <= 1440)) return { fehler: 'Abstand zwischen 5 und 1440 Minuten.' };
+    const t = { art: 'MINUTEN', alle: n };
+    if (w.von && w.bis) { t.von = w.von; t.bis = w.bis; } else if (w.von || w.bis) return { fehler: 'Von und bis zusammen angeben, oder beide leer lassen.' };
+    return { takt: t };
+  }
+  if (!w.nach) return { fehler: 'Knopf wählen.' };
+  return { takt: { art: 'NACH', knopf: w.nach } };
+}
+function weckerHtml(k, l) {
+  if (k.stand === 'GESTRICHEN') return '';
+  const w = weckerEntwurf(k), s = k.schluessel;
+  const r = weckerTakt(w);
+  const geaendert = !r.fehler && kanon(r.takt) !== kanon(k.takt || null);
+  const andere = (S.lage?.knoepfe || []).filter((x) => x.schluessel !== s && x.stand !== 'GESTRICHEN');
+  const hinweise = [];
+  if (!k.ausfuehrung) hinweise.push('Der Knopf hat noch keine Ausführung im Desk. Der Wecker wird gemerkt und wirkt, sobald er sie hat.');
+  else if (k.stand !== 'PRODUKTIV') hinweise.push(`Der Wecker löst erst aus, wenn der Knopf auf „produktiv“ steht (jetzt: ${STAND_TEXT[k.stand] || k.stand}). Von Hand geht „Jetzt“ immer.`);
+  if (!k.an) hinweise.push('Der Knopf ist ausgeschaltet, der Wecker ruht.');
+  if (l?.alte_zeitplaene_aktiv) hinweise.push('Alte Zeitpläne laufen noch und bleiben maßgeblich, bis sie mit der Stufe abgeschaltet werden.');
+  return `<div class="abschnitt wecker"><h3>Wecker</h3>
+    <p class="dim klein" style="margin-bottom:8px">Jetzt von Hand geht immer. Hier stellst Du ein, wann der Knopf zusätzlich von selbst läuft: mehrmals am Tag, alle paar Minuten, nach einem anderen Knopf oder gar nicht. Zeiten in Wiener Zeit.</p>
+    <div class="reihe"><select data-w="modus" aria-label="Art des Weckers">
+      <option value="aus" ${w.modus === 'aus' ? 'selected' : ''}>Aus (nur von Hand)</option>
+      <option value="zeit" ${w.modus === 'zeit' ? 'selected' : ''}>Zu festen Uhrzeiten</option>
+      <option value="minuten" ${w.modus === 'minuten' ? 'selected' : ''}>Alle … Minuten</option>
+      <option value="nach" ${w.modus === 'nach' ? 'selected' : ''}>Nach einem anderen Knopf</option>
+    </select></div>
+    ${w.modus === 'zeit' ? `<div class="wecker-zeiten">
+      ${w.zeiten.map((z, i) => `<span class="zeit"><input type="time" value="${h(z)}" data-w="zeit" data-i="${i}" aria-label="Uhrzeit ${i + 1}"><button class="knopf klein still" data-tu="w-minus" data-i="${i}" title="Uhrzeit entfernen" aria-label="Uhrzeit entfernen">×</button></span>`).join('')}
+      <button class="knopf klein still" data-tu="w-plus" ${w.zeiten.length >= 24 ? 'disabled' : ''}>+ Uhrzeit</button></div>
+      <div class="reihe tage" role="group" aria-label="Wochentage">${TAGE.map((t, i) => `<button type="button" class="chip ${w.tage.includes(i + 1) ? 'an' : ''}" data-tu="w-tag" data-t="${i + 1}" aria-pressed="${w.tage.includes(i + 1)}">${t}</button>`).join('')}
+        <button type="button" class="knopf klein still" data-tu="w-werktags">Mo bis Fr</button><button type="button" class="knopf klein still" data-tu="w-taeglich">täglich</button></div>` : ''}
+    ${w.modus === 'minuten' ? `<div class="reihe" style="margin-top:8px"><label>alle <input type="number" min="5" max="1440" step="1" value="${h(w.alle)}" data-w="alle" style="width:5.5rem"> Min.</label>
+      <label>von <input type="time" value="${h(w.von)}" data-w="von"></label><label>bis <input type="time" value="${h(w.bis)}" data-w="bis"></label></div>
+      <p class="dim klein">Von und bis sind freiwillig. Leer heißt: rund um die Uhr. Kürzester Abstand 5 Minuten.</p>` : ''}
+    ${w.modus === 'nach' ? `<div class="reihe" style="margin-top:8px"><select data-w="nach" aria-label="nach Knopf"><option value="">Knopf wählen</option>${andere.map((x) => `<option value="${h(x.schluessel)}" ${w.nach === x.schluessel ? 'selected' : ''}>${x.nummer}. ${h(x.name)}</option>`).join('')}</select></div>` : ''}
+    <div class="reihe" style="margin-top:10px">
+      <button class="knopf" data-tu="w-speichern" data-s="${h(s)}" ${!geaendert ? 'disabled' : ''}>Wecker speichern</button>
+      ${geaendert ? `<button class="knopf still" data-tu="w-verwerfen" data-s="${h(s)}">Zurücksetzen</button>` : ''}
+      <span class="dim klein">${r.fehler ? `<span class="fehler">${h(r.fehler)}</span>` : `Gilt: ${h(taktText(r.takt))}${geaendert ? ' (noch nicht gespeichert)' : ''}`}</span>
+    </div>
+    ${hinweise.map((t) => `<div class="hinweis" style="margin-top:8px">${h(t)}</div>`).join('')}
+  </div>`;
+}
+async function weckerSpeichern(s) {
+  const k = S.knopf[s]?.knopf; if (!k) return;
+  const r = weckerTakt(weckerEntwurf(k));
+  if (r.fehler) { S.fehler = r.fehler; render(); return; }
+  const grund = await grundFragen(`Wecker von „${k.name}“ ändern`, `Neu: ${taktText(r.takt)}. Der Grund steht in der Version des Knopfs.`);
+  if (!grund) return;
+  try { S.knopf[s] = await api('takt_setzen', { schluessel: s, takt: r.takt, grund }); delete S.wecker[s]; await ladeLage(true); S.fehler = null; }
+  catch (e) { S.fehler = e.message; }
+  render();
+}
+
 // ---------- Grund-Dialog ----------
 const dlg = document.getElementById('dlg');
 function grundFragen(titel, text, vorgabe = '') {
@@ -124,6 +213,7 @@ async function jetzt(k, args) {
     if (r.wartet) S.fehler = `„${k.name}“ läuft gerade, der Klick wartet auf das Ende.`;
     await ladeLage(true);
     if (k.schluessel === 'postfach_ablegen') { S.ablage.laeuft = r.lauf?.id || null; S.ablage.vorschau = null; S.ablage.meldung = `Ablage gestartet (Lauf ${r.lauf?.id}). Ergebnis kommt gleich.`; }
+    if (k.schluessel === 'alerts_kritiken') { S.presse.laeuft = r.lauf?.id || null; S.presse.vorschau = null; S.presse.meldung = `Auswertung gestartet (Lauf ${r.lauf?.id}). Das Ergebnis kommt gleich.`; }
     pollen();
   } catch (e) { S.fehler = e.message; }
   render();
@@ -156,6 +246,26 @@ async function ablageZurueck(z) {
   catch (e) { S.fehler = e.message; }
   S.laden['zurueck:' + z.id] = false; render();
 }
+const PRESSE_FILTER = [['neu', 'Neu', 'neu'], ['kritik', 'Kritiken', 'kritiken'], ['werbung', 'Werbebasis', 'werbebasis'], ['ohne_bezug', 'Ohne Bezug', 'ohne_bezug'], ['alle', 'Alle', 'gesamt']];
+async function presseLaden(still) {
+  try { S.presse.daten = await api('presse', { filter: S.presse.filter, n: 150 }); }
+  catch (e) { if (!still) S.fehler = e.message; }
+}
+async function presseVorschau() {
+  S.presse.vorschau = null; S.presse.meldung = null; S.laden.pvorschau = true; render();
+  try { S.presse.vorschau = await api('alerts_vorschau', {}, { timeout: 150_000 }); }
+  catch (e) { S.fehler = e.message; }
+  S.laden.pvorschau = false; render();
+}
+async function presseSetzen(id, patch, zurueck) {
+  const z = (S.presse.daten?.zeilen || []).find((x) => x.id === id);
+  try {
+    await api('presse_setzen', { id, ...patch });
+    S.presse.zuletzt = zurueck && z ? { id, patch: zurueck, titel: z.titel } : null;
+    await presseLaden(true);
+  } catch (e) { S.fehler = e.message; }
+  render();
+}
 async function anmelden(email) {
   S.laden.anmelden = true; render();
   try { const r = await api('anmelden', { email }); S.anmeldeHinweis = r.grund ? `${r.hinweis} (${r.grund})` : r.hinweis; }
@@ -174,7 +284,7 @@ async function abmelden() { try { await api('abmelden'); } catch { /* egal */ } 
 // ---------- Polling ----------
 function pollen() {
   clearTimeout(pollTimer);
-  const offen = (S.lage?.knoepfe || []).some((k) => k.offen) || S.ablage.laeuft;
+  const offen = (S.lage?.knoepfe || []).some((k) => k.offen) || S.ablage.laeuft || S.presse.laeuft;
   pollTimer = setTimeout(async () => {
     if (!S.sitzung) return;
     await ladeLage(true);
@@ -185,6 +295,16 @@ function pollen() {
       const k7 = (S.lage?.knoepfe || []).find((k) => k.schluessel === 'postfach_ablegen');
       if (k7 && !k7.offen) { await ablageProtokoll(S.ablage.laeuft, true); S.ablage.laeuft = null; S.ablage.meldung = S.ablage.protokoll?.lauf?.ergebnis ? `Ablage fertig: ${S.ablage.protokoll.lauf.ergebnis}` : 'Ablage fertig.'; }
     }
+    if (S.presse.laeuft) {
+      const k40 = (S.lage?.knoepfe || []).find((k) => k.schluessel === 'alerts_kritiken');
+      if (k40 && !k40.offen) {
+        await ladeKnopf('alerts_kritiken', true); S.presse.laeuft = null;
+        const lauf = S.knopf.alerts_kritiken?.laeufe?.[0];
+        S.presse.meldung = lauf?.ergebnis ? `${lauf.ok === false ? 'Mit Fehlern fertig' : 'Fertig'}: ${lauf.ergebnis}${lauf.fehler ? ' · ' + lauf.fehler : ''}` : 'Fertig.';
+        await presseLaden(true);
+      }
+    }
+    if (seite === 'presse' && !S.presse.laeuft) await presseLaden(true);
     render(); pollen();
   }, offen ? 8_000 : 60_000);
 }
@@ -192,7 +312,7 @@ function pollen() {
 // ---------- Ansichten ----------
 function menue(seite) {
   // Nur, was fertig ist. Heute kommt ins Menü, wenn der Postmeister steht; jeder weitere Knopf, wenn er arbeitet.
-  const e = [['ablage', '▤', 'Ablage'], ['technik', '⚙', 'Technik']];
+  const e = [['ablage', '▤', 'Ablage'], ['presse', '❝', 'Presse'], ['technik', '⚙', 'Technik']];
   return `<nav class="menue">
     <div class="marke"><b>Desk</b><span>v${VERSION}</span></div>
     ${e.map(([k, i, t]) => `<a href="#${k}" class="${seite === k || (k === 'technik' && TECHNIK.has(seite)) ? 'aktiv' : ''}"><span class="ico">${i}</span><span class="text">${t}</span></a>`).join('')}
@@ -276,12 +396,14 @@ function knopfDetail(s) {
     <div class="reihe" style="margin-bottom:14px">
       ${k.ausfuehrung ? `<button class="knopf" data-tu="jetzt" data-s="${s}" ${kl.offen || !k.an ? 'disabled' : ''}>Jetzt${kl.offen ? ' (läuft)' : ''}</button>` : '<span class="hinweis" style="margin:0">Noch keine Ausführung im Desk, der Knopf läuft über die alten Zeitpläne. Kommt mit seiner Stufe.</span>'}
       ${s === 'postfach_ablegen' ? '<button class="knopf still" data-tu="nav" data-ziel="ablage">Vorschau und Ablage</button>' : ''}
+      ${s === 'alerts_kritiken' ? '<button class="knopf still" data-tu="nav" data-ziel="presse">Zur Presse</button>' : ''}
     </div>
     <div class="abschnitt"><h3>Ablauf</h3><ol class="ablauf">${(k.ablauf || []).map((a) => `<li>${h(a)}</li>`).join('')}</ol></div>
     <div class="abschnitt"><h3>Letzter Lauf</h3>
       ${l.letzter_lauf ? `<dl class="fakten"><dt>Wann</dt><dd>${wann(l.letzter_lauf)} (${her(l.letzter_lauf)})</dd><dt>Ergebnis</dt><dd class="${l.letzter_ok === false ? 'fehler' : l.letzter_ok ? 'ok' : ''}">${l.letzter_ok === false ? 'Fehler' : l.letzter_ok ? 'gut' : 'läuft'}</dd>${l.letzter_fehler ? `<dt>Fehler</dt><dd class="fehler">${h(l.letzter_fehler)}</dd>` : ''}<dt>24 Stunden</dt><dd>${l.laeufe_24h} Läufe, ${l.fehler_24h} Fehler</dd></dl>` : '<p class="dim">Noch kein Lauf.</p>'}
     </div>
     <div class="abschnitt"><h3>Auslöser</h3><dl class="fakten"><dt>Takt</dt><dd>${h(taktText(k.takt))}</dd><dt>Jetzt</dt><dd>${k.ausfuehrung ? `über das Laufwerk, Ausführung ${h(k.ausfuehrung.art)} ${h(k.ausfuehrung.funktion)}` : 'noch nicht'}</dd><dt>Höchstdauer</dt><dd>${k.hoechstdauer_s} s</dd>${(k.abhaengig_von || []).length ? `<dt>Vorher</dt><dd>${k.abhaengig_von.map(knopfName).map(h).join(', ')}</dd>` : ''}${l.alte_zeitplaene_aktiv ? `<dt>Alte Zeitpläne</dt><dd>${l.alte_zeitplaene_aktiv} noch aktiv (werden mit der Stufe abgeschaltet)</dd>` : ''}</dl></div>
+    ${weckerHtml(k, l)}
     <div class="abschnitt"><h3>Kosten</h3><dl class="fakten"><dt>Heute</dt><dd>${usd(kl.kosten?.heute)}</dd><dt>Woche</dt><dd>${usd(kl.kosten?.woche)}</dd><dt>Monat</dt><dd>${usd(kl.kosten?.monat)}</dd></dl></div>
     <div class="abschnitt"><h3>Einstellungen</h3>
       ${D.einstellungen.length ? D.einstellungen.map((e) => `<div class="einstellung"><div><div class="name">${h(e.name)}</div><div class="wert">${h(JSON.stringify(e.wert))}</div><div class="dim klein">${h(e.erklaerung)} · Version ${e.version}</div></div><button class="knopf klein still" data-tu="einstellung" data-s="${s}" data-name="${h(e.name)}">Ändern</button></div>`).join('') : '<p class="dim">Keine Einstellungen.</p>'}
@@ -339,6 +461,53 @@ function seiteAblage() {
   </div>`;
 }
 
+function seitePresse() {
+  const k40 = S.lage?.knoepfe.find((k) => k.schluessel === 'alerts_kritiken');
+  const P = S.presse, V = P.vorschau, D = P.daten;
+  const laeuft = k40?.offen || P.laeuft;
+  const z = D?.zahlen || {};
+  const sicher = (u) => (/^https?:\/\//i.test(u || '') ? u : '#');
+  const meldungenFrei = V ? V.alert_mails : 0;
+  return `<div class="inhalt">
+    <div class="kopf"><div><h1>Presse</h1><span class="dim klein">Knopf 40 · Google Alerts und Kritiken${k40 ? ` · ${STAND_TEXT[k40.stand]} · Version ${k40.version} · ${k40.an ? 'an' : 'aus'} · Wecker: ${h(taktText(k40.takt))}` : ''}</span></div>
+      <div class="reihe">${k40 ? '<button class="knopf still klein" data-tu="knopf" data-s="alerts_kritiken">Wecker, Einstellungen, Läufe</button>' : ''}</div></div>
+    ${fehlerLeiste()}
+    ${P.meldung ? `<div class="hinweis gruen">${h(P.meldung)}</div>` : ''}
+    ${P.zuletzt ? `<div class="hinweis reihe" style="justify-content:space-between"><span>„${h(String(P.zuletzt.titel).slice(0, 80))}“ geändert.</span><button class="knopf klein still" data-tu="p-zurueck">Rückgängig</button></div>` : ''}
+    <div class="karte">
+      <p>Liest die Google Alerts im Posteingang (Wiener KammerOrchester, Künstlersekretariat, YOOL), zieht jede Meldung heraus, erkennt Kritiken und lobende Stimmen als Werbebasis und legt die ausgewerteten Alert-Mails nach Archiv/Jahr ab, mit Kennzeichen und einzeln zurückholbar (Knopf 7, Protokoll). Doppelte Meldungen zählen einmal. Nichts wird gelöscht. Die Erkennung läuft nach Regeln, ohne Modellkosten.</p>
+      <div class="reihe">
+        <button class="knopf still" data-tu="p-vorschau" ${S.laden.pvorschau || laeuft ? 'disabled' : ''}>1. Vorschau</button>
+        <button class="knopf" data-tu="p-auswerten" ${!V || !meldungenFrei || laeuft || !k40?.an ? 'disabled' : ''}>2. Auswerten und ablegen${meldungenFrei ? ` (${meldungenFrei})` : ''}</button>
+        <button class="knopf still" data-tu="p-alt" ${laeuft || !k40?.an ? 'disabled' : ''}>Altbestand einlesen</button>
+        ${S.laden.pvorschau ? '<span class="laden">Postfach wird gelesen, bis zu zwei Minuten</span>' : ''}${laeuft ? '<span class="laden">Auswertung läuft</span>' : ''}${!k40?.an ? '<span class="dim klein">Der Knopf ist aus.</span>' : ''}
+      </div>
+      <p class="dim klein" style="margin-top:8px">Altbestand: liest alte Alert-Mails aus der Datenbank (bis zu 500 je Klick), fasst das Postfach nicht an.</p>
+    </div>
+    ${V ? `<div class="karte"><div class="kopf"><h2>Vorschau</h2><span class="dim klein">${V.alert_mails} Alert-Mails · ${V.meldungen} Meldungen, davon ${V.davon_neu} neu · ${Math.round(V.dauer_ms / 1000)} s${V.unvollstaendig ? ' · <span class="fehler">unvollständig, Rest beim nächsten Mal</span>' : ''}</span></div>
+      <div class="zahlen"><div class="zahl"><b>${V.kritiken_neu}</b><span>neue Kritiken</span></div><div class="zahl"><b>${V.werbebasis_neu}</b><span>neu für die Werbebasis</span></div><div class="zahl"><b>${V.ohne_bezug_neu}</b><span>ohne Bezug (nur Seitentext)</span></div><div class="zahl"><b>${V.davon_bekannt}</b><span>schon bekannt</span></div></div>
+      ${V.beispiele?.length ? `<table class="tabelle" style="margin-top:10px"><tr><th>Alert</th><th>Datum</th><th>Meldungen</th></tr>${V.beispiele.map((m) => `<tr><td>${h(m.alert)}<div class="dim klein">${m.titel.map((t) => h(t.titel)).slice(0, 2).join(' · ')}</div></td><td class="nowrap">${tag(m.datum)}</td><td>${m.meldungen}</td></tr>`).join('')}</table>` : '<p class="dim">Keine Alert-Mails im Posteingang.</p>'}
+      ${V.nicht_zerlegt?.length ? `<p class="hinweis" style="margin-top:8px">${V.nicht_zerlegt.length} Alert-Mails ließen sich nicht zerlegen und bleiben liegen: ${h(V.nicht_zerlegt.slice(0, 3).map((x) => x.betreff).join(' | '))}</p>` : ''}
+      ${V.ohne_ziel?.length ? `<p class="hinweis">${V.ohne_ziel.length} Mails ohne Zielordner (Archiv/${[...new Set(V.ohne_ziel.map((x) => x.jahr))].join(', ')} fehlt in Outlook).</p>` : ''}
+    </div>` : ''}
+    <div class="karte"><div class="kopf"><h2>Sammlung</h2><span class="dim klein">${z.gesamt ?? 0} Meldungen insgesamt</span></div>
+      <div class="reihe" role="group" aria-label="Filter">${PRESSE_FILTER.map(([f, t, zk]) => `<button class="chip ${P.filter === f ? 'an' : ''}" data-tu="p-filter" data-f="${f}">${t}${D ? ` (${z[zk] ?? 0})` : ''}</button>`).join('')}</div>
+      ${!D ? '<div class="laden" style="margin-top:10px">Sammlung wird geladen</div>' : D.zeilen.length ? D.zeilen.map((t) => `<div class="treffer">
+        <div><a href="${h(sicher(t.url))}" target="_blank" rel="noopener noreferrer">${h(t.titel)}</a></div>
+        <div class="dim klein">${h(t.quelle || '')} · ${tag(t.erstmals_am)}${t.anzahl > 1 ? ` · ${t.anzahl}× gemeldet` : ''}${t.alert_name ? ` · Alert „${h(t.alert_name)}“` : ''}</div>
+        ${t.auszug ? `<div class="auszug">${h(t.auszug)}</div>` : ''}
+        <div class="reihe" style="margin-top:6px">
+          <span class="marke ${t.art === 'KRITIK' ? 'an' : ''}">${t.art === 'KRITIK' ? 'Kritik' : t.art === 'PRESSE' ? 'Presse' : 'Web'}</span>${t.werbe ? '<span class="marke an">Werbebasis</span>' : ''}${!t.hat_bezug ? '<span class="marke">kein Bezug im Titel</span>' : ''}${t.status === 'GESEHEN' ? '<span class="marke">gesehen</span>' : ''}
+          ${t.status === 'NEU' ? `<button class="knopf klein still" data-tu="p-set" data-id="${t.id}" data-status="GESEHEN">Gesehen</button>` : ''}
+          <button class="knopf klein still" data-tu="p-set" data-id="${t.id}" data-werbe="${t.werbe ? 'nein' : 'ja'}">${t.werbe ? 'Aus Werbebasis' : 'In Werbebasis'}</button>
+          <button class="knopf klein still" data-tu="p-set" data-id="${t.id}" data-status="VERWORFEN">Verwerfen</button>
+        </div>
+        ${(t.werbe_hinweis || []).length ? `<div class="dim klein">Lob erkannt an: ${h(t.werbe_hinweis.join(', '))}</div>` : ''}
+      </div>`).join('') : '<p class="dim" style="margin-top:10px">Hier ist nichts.</p>'}
+    </div>
+  </div>`;
+}
+
 function seiteSteuerung() {
   const L = S.lage;
   if (!L) return `<div class="inhalt"><div class="laden">Steuerung wird geladen</div></div>`;
@@ -383,6 +552,7 @@ function render() {
   if (seite === 'heute') inhalt = seiteHeute();
   else if (seite === 'knoepfe') inhalt = seiteKnoepfe(null);
   else if (seite === 'knopf') inhalt = seiteKnoepfe(arg);
+  else if (seite === 'presse') inhalt = seitePresse();
   else if (seite === 'technik') inhalt = seiteTechnik();
   else if (seite === 'steuerung') inhalt = seiteSteuerung();
   else inhalt = seiteAblage();
@@ -396,6 +566,7 @@ async function seiteLaden() {
   if (seite === 'heute') await ladeHeute();
   if (seite === 'knopf' && arg) { if (!S.knopf[arg]) render(); await ladeKnopf(arg); }
   if (seite === 'ablage' && !S.ablage.protokoll) { render(); await ablageProtokoll(null); }
+  if (seite === 'presse') { render(); await presseLaden(); }
   render();
 }
 
@@ -421,7 +592,47 @@ app.addEventListener('click', async (ev) => {
   }
   else if (tu === 'protokoll') { await ablageProtokoll(null); render(); }
   else if (tu === 'zurueck') { const z = S.ablage.protokoll?.zeilen.find((x) => String(x.id) === el.dataset.id); if (z) await ablageZurueck(z); }
+  else if (tu === 'p-vorschau') await presseVorschau();
+  else if (tu === 'p-auswerten') {
+    const V = S.presse.vorschau; if (!V) return;
+    if (!confirm(`${V.alert_mails} Alert-Mails jetzt auswerten und ablegen?\nDie Meldungen kommen in die Sammlung. Die Mails werden gelesen, mit „${V.kategorie}“ gekennzeichnet und nach Archiv/Jahr gelegt. Jede lässt sich zurückholen.`)) return;
+    const k40 = (S.lage?.knoepfe || []).find((x) => x.schluessel === 'alerts_kritiken');
+    if (k40) await jetzt(k40, { limit: V.hoechstmenge });
+  }
+  else if (tu === 'p-alt') {
+    if (!confirm('Alte Alert-Mails aus der Datenbank einlesen (bis zu 500 je Klick)?\nDas Postfach wird nicht angefasst, es entstehen keine Kosten.')) return;
+    const k40 = (S.lage?.knoepfe || []).find((x) => x.schluessel === 'alerts_kritiken');
+    if (k40) await jetzt(k40, { modus: 'altbestand', limit: 500 });
+  }
+  else if (tu === 'p-filter') { S.presse.filter = el.dataset.f; S.presse.daten = null; render(); await presseLaden(); render(); }
+  else if (tu === 'p-set') {
+    const id = Number(el.dataset.id), t = (S.presse.daten?.zeilen || []).find((x) => x.id === id); if (!t) return;
+    if (el.dataset.status) await presseSetzen(id, { status: el.dataset.status }, { status: t.status });
+    else await presseSetzen(id, { werbe: el.dataset.werbe === 'ja' }, { werbe: t.werbe });
+  }
+  else if (tu === 'p-zurueck') { const u = S.presse.zuletzt; if (u) { try { await api('presse_setzen', { id: u.id, ...u.patch }); S.presse.zuletzt = null; await presseLaden(true); } catch (e) { S.fehler = e.message; } render(); } }
+  else if (tu === 'w-plus' || tu === 'w-minus' || tu === 'w-tag' || tu === 'w-werktags' || tu === 'w-taeglich') {
+    const r = route(); const k0 = S.knopf[r.arg]?.knopf; if (!k0) return;
+    const w = weckerEntwurf(k0);
+    if (tu === 'w-plus') w.zeiten.push(w.zeiten.length ? w.zeiten[w.zeiten.length - 1] : '08:00');
+    else if (tu === 'w-minus') w.zeiten.splice(Number(el.dataset.i), 1);
+    else if (tu === 'w-tag') { const n = Number(el.dataset.t); w.tage = w.tage.includes(n) ? w.tage.filter((x) => x !== n) : [...w.tage, n]; }
+    else if (tu === 'w-werktags') w.tage = [1, 2, 3, 4, 5];
+    else w.tage = [1, 2, 3, 4, 5, 6, 7];
+    render();
+  }
+  else if (tu === 'w-speichern') await weckerSpeichern(s);
+  else if (tu === 'w-verwerfen') { delete S.wecker[s]; render(); }
   else if (tu === 'abmelden') await abmelden();
+});
+app.addEventListener('change', (ev) => {
+  const el = ev.target.closest('[data-w]'); if (!el) return;
+  const r = route(); const k0 = S.knopf[r.arg]?.knopf; if (!k0) return;
+  const w = weckerEntwurf(k0), a = el.dataset.w;
+  if (a === 'zeit') w.zeiten[Number(el.dataset.i)] = el.value;
+  else if (a === 'modus') w.modus = el.value;
+  else w[a] = el.value;
+  render();
 });
 app.addEventListener('submit', async (ev) => {
   const f = ev.target.closest('[data-form]');

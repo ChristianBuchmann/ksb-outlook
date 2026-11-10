@@ -1,4 +1,4 @@
-/* Desk v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
+/* Desk v17 (10.11.2026; Wecker und Presse). v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
 :root {
   --rot: #7a1f2e;
   --rot-hell: #a8303f;
@@ -178,3 +178,16 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
   .knopfzeile { grid-template-columns: 18px 1fr auto; }
   .knopfzeile .nr { display: none; }
 }
+
+/* v17: Wecker an jedem Knopf, Seite Presse */
+select, input[type=time], input[type=number] { font: inherit; padding: 7px 9px; border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); color: var(--tinte); min-height: 40px; }
+.wecker-zeiten { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
+.wecker-zeiten .zeit { display: inline-flex; gap: 4px; align-items: center; }
+.tage { margin-top: 8px; }
+.chip { font: inherit; font-size: .85rem; padding: 6px 12px; min-height: 36px; border-radius: 999px; border: 1px solid var(--linie); background: var(--flaeche); color: var(--tinte); cursor: pointer; }
+.chip.an { background: var(--rot); color: #fff; border-color: var(--rot); }
+.treffer { padding: 10px 0; border-top: 1px solid var(--linie); margin-top: 10px; }
+.treffer:first-of-type { margin-top: 10px; }
+.treffer .auszug { margin-top: 4px; font-size: .9rem; overflow-wrap: anywhere; }
+.treffer a { font-weight: 600; overflow-wrap: anywhere; }
+label { display: inline-flex; gap: 6px; align-items: center; }
