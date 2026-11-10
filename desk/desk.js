@@ -1,9 +1,10 @@
-// Desk v17 (10.11.2026; v14 Zuschnitt, v15 Symbol, v16 Manifest: Homescreen-Symbol öffnet Safari, v17 Wecker an jedem Knopf und Seite Presse für Knopf 40). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
+// Desk v18 (10.11.2026; v14 Zuschnitt, v15 Symbol, v16 Manifest: Homescreen-Symbol öffnet Safari, v17 Wecker an jedem Knopf und Seite Presse für Knopf 40, v18 Projekte mit Typen, Kanban, Liste, Tabelle, Termine, Rechner und Szenarien in projekte.js). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
 // Heute, Knöpfe und Steuerung liegen hinter „Technik“ (Christian 09.11.2026: sauber und einfach, ein Knopf, nichts im Weg).
 // Bauplan Desk Fassung 4, Abschnitte 2.1 bis 2.7. Reine Dateien, kein Build. Datenbank nur über die Serverfunktion desk.
 // Erster Knopf: 7 Postfach ablegen (Christian 09.11.2026).
 
-const VERSION = 17;
+import { projekteModul } from './projekte.js';
+const VERSION = 18;
 const API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk';
 // Kein Schlüssel in der Seite: die Serverfunktion desk ist wie die Seitenleiste ohne JWT-Prüfung erreichbar, jeder Aufruf braucht die Sitzung.
 const SITZUNG_KEY = 'desk.sitzung';
@@ -198,6 +199,9 @@ function grundFragen(titel, text, vorgabe = '') {
   });
 }
 
+// ---------- Projekte (v18) ----------
+const PR = projekteModul({ api, h, app, render, grundFragen, fehler: (m) => { S.fehler = m; }, fehlerLeiste });
+
 // ---------- Aktionen ----------
 async function schalten(k) {
   const grund = await grundFragen(k.an ? `„${k.name}“ ausschalten` : `„${k.name}“ einschalten`, 'Der Grund steht in der Version des Knopfs.');
@@ -312,10 +316,10 @@ function pollen() {
 // ---------- Ansichten ----------
 function menue(seite) {
   // Nur, was fertig ist. Heute kommt ins Menü, wenn der Postmeister steht; jeder weitere Knopf, wenn er arbeitet.
-  const e = [['ablage', '▤', 'Ablage'], ['presse', '❝', 'Presse'], ['technik', '⚙', 'Technik']];
+  const e = [['projekte', '▦', 'Projekte'], ['ablage', '▤', 'Ablage'], ['presse', '❝', 'Presse'], ['technik', '⚙', 'Technik']];
   return `<nav class="menue">
     <div class="marke"><b>Desk</b><span>v${VERSION}</span></div>
-    ${e.map(([k, i, t]) => `<a href="#${k}" class="${seite === k || (k === 'technik' && TECHNIK.has(seite)) ? 'aktiv' : ''}"><span class="ico">${i}</span><span class="text">${t}</span></a>`).join('')}
+    ${e.map(([k, i, t]) => `<a href="#${k}" class="${seite === k || (k === 'projekte' && seite === 'projekt') || (k === 'technik' && TECHNIK.has(seite)) ? 'aktiv' : ''}"><span class="ico">${i}</span><span class="text">${t}</span></a>`).join('')}
     <div class="fuss"><span class="lang">${S.wer ? h(S.wer.name) + '<br>' : ''}Stand ${S.lageAm ? wann(S.lageAm, true) : '…'} Wien<br></span>v${VERSION}</div>
   </nav>`;
 }
@@ -553,6 +557,8 @@ function render() {
   else if (seite === 'knoepfe') inhalt = seiteKnoepfe(null);
   else if (seite === 'knopf') inhalt = seiteKnoepfe(arg);
   else if (seite === 'presse') inhalt = seitePresse();
+  else if (seite === 'projekte') inhalt = PR.seite('');
+  else if (seite === 'projekt') inhalt = PR.seite(arg);
   else if (seite === 'technik') inhalt = seiteTechnik();
   else if (seite === 'steuerung') inhalt = seiteSteuerung();
   else inhalt = seiteAblage();
@@ -567,6 +573,7 @@ async function seiteLaden() {
   if (seite === 'knopf' && arg) { if (!S.knopf[arg]) render(); await ladeKnopf(arg); }
   if (seite === 'ablage' && !S.ablage.protokoll) { render(); await ablageProtokoll(null); }
   if (seite === 'presse') { render(); await presseLaden(); }
+  if (seite === 'projekte' || seite === 'projekt') { await PR.laden(seite === 'projekt' ? arg : ''); return; }
   render();
 }
 

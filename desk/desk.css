@@ -1,4 +1,4 @@
-/* Desk v17 (10.11.2026; Wecker und Presse). v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
+/* Desk v18 (10.11.2026; Projekte). v17 (10.11.2026; Wecker und Presse). v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
 :root {
   --rot: #7a1f2e;
   --rot-hell: #a8303f;
@@ -191,3 +191,41 @@ select, input[type=time], input[type=number] { font: inherit; padding: 7px 9px; 
 .treffer .auszug { margin-top: 4px; font-size: .9rem; overflow-wrap: anywhere; }
 .treffer a { font-weight: 600; overflow-wrap: anywhere; }
 label { display: inline-flex; gap: 6px; align-items: center; }
+
+/* v18: Projekte */
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+.chip.tab { white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; }
+.chip.tab:hover { text-decoration: none; }
+a.plink { display: block; color: inherit; }
+a.plink:hover { text-decoration: none; border-color: var(--rot); }
+.marke.ball-wir { color: var(--rot); border-color: color-mix(in srgb, var(--rot) 40%, transparent); }
+.kanban { display: flex; gap: 10px; overflow-x: auto; align-items: flex-start; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
+.spalte-k { flex: 0 0 250px; background: color-mix(in srgb, var(--grau) 8%, transparent); border-radius: var(--radius); padding: 8px; min-height: 80px; }
+.sk-kopf { padding: 2px 4px 8px; }
+.pkarte { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px; padding: 9px 10px; margin-bottom: 8px; cursor: pointer; box-shadow: var(--schatten); overflow-wrap: anywhere; }
+.pkarte:hover { border-color: var(--rot); }
+.pk-kopf { display: flex; justify-content: space-between; gap: 8px; }
+.stand-wahl { margin-top: 6px; width: 100%; min-height: 36px; font-size: .85rem; }
+.pliste .pkarte { margin-bottom: 0; }
+.pzeile { position: relative; margin-bottom: 8px; }
+.pzeile .standtext { position: absolute; top: 9px; right: 12px; display: none; }
+.monat { margin-bottom: 14px; }
+.termin { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; align-items: start; padding: 8px 10px; border-top: 1px solid var(--linie); cursor: pointer; background: var(--flaeche); }
+.termin:hover { background: color-mix(in srgb, var(--rot) 5%, transparent); }
+.rechner td, .rechner th { padding: 6px 6px; }
+.rechner input[type=checkbox] { width: 20px; height: 20px; }
+.summe { position: sticky; bottom: 8px; z-index: 2; }
+.vergleich th { white-space: nowrap; }
+dialog.formdlg { max-width: 520px; max-height: 90vh; overflow: auto; }
+dialog.formdlg.breit { max-width: 640px; }
+.ff { display: flex; flex-direction: column; gap: 3px; margin-bottom: 9px; align-items: stretch; }
+.ff.check { flex-direction: row; align-items: center; }
+.ff .fl { color: var(--grau); font-size: .8rem; }
+.ff input[type=date], .ff input[type=number], .ff select { width: 100%; }
+.pzeile2 { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--linie); }
+@media (max-width: 699px) {
+  .spalte-k { flex-basis: 78vw; }
+  .summe { bottom: 70px; }
+  .termin { grid-template-columns: 78px 1fr; }
+  .termin .marke { display: none; }
+}
