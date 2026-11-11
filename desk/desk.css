@@ -1,4 +1,4 @@
-/* Desk v19 (11.11.2026; Weingüter als aufklappbare Karten). Desk v18 (10.11.2026; Projekte). v17 (10.11.2026; Wecker und Presse). v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
+/* Desk v20 (11.11.2026; Zahlen oben sind Filter). v19 (11.11.2026; Weingüter als aufklappbare Karten). Desk v18 (10.11.2026; Projekte). v17 (10.11.2026; Wecker und Presse). v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
 :root {
   --rot: #7a1f2e;
   --rot-hell: #a8303f;
@@ -250,6 +250,14 @@ dialog.formdlg.breit { max-width: 640px; }
 .gruppe { margin-bottom: 14px; }
 .gruppe .pliste .pkarte { margin-bottom: 8px; }
 .wk-lagekarte .zahl b { font-size: 1.15rem; }
+/* v20: Zahlen sind Filter */
+button.zahl { font: inherit; color: var(--tinte); text-align: left; border: 2px solid transparent; cursor: pointer; width: 100%; -webkit-tap-highlight-color: transparent; }
+button.zahl:hover { border-color: var(--linie); }
+button.zahl:focus-visible { outline: 2px solid var(--rot-hell); outline-offset: 2px; }
+button.zahl.an { background: var(--rot); border-color: var(--rot); color: #fff; }
+button.zahl.an span { color: #fff; opacity: .9; }
+.filter-an { font-weight: 600; color: var(--rot); align-self: center; }
+.wk-lagekarte .reihe { align-items: center; }
 @media (max-width: 699px) {
   .spalte-k { flex: 0 0 78vw; max-width: none; }
   .wk-lagekarte .zahlen { grid-template-columns: repeat(3, 1fr); gap: 6px; }

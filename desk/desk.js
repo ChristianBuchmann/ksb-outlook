@@ -1,10 +1,10 @@
-// Desk v19 (11.11.2026; v14 Zuschnitt, v15 Symbol, v16 Manifest: Homescreen-Symbol öffnet Safari, v17 Wecker an jedem Knopf und Seite Presse für Knopf 40, v18 Projekte mit Typen, Kanban, Liste, Tabelle, Termine, Rechner und Szenarien in projekte.js, v19 Weingüter als aufklappbare Karten mit Konditionen). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
+// Desk v20 (11.11.2026; v14 Zuschnitt, v15 Symbol, v16 Manifest: Homescreen-Symbol öffnet Safari, v17 Wecker an jedem Knopf und Seite Presse für Knopf 40, v18 Projekte mit Typen, Kanban, Liste, Tabelle, Termine, Rechner und Szenarien in projekte.js, v19 Weingüter als aufklappbare Karten mit Konditionen, v20 Zahlen oben sind zugleich die Filter). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
 // Heute, Knöpfe und Steuerung liegen hinter „Technik“ (Christian 09.11.2026: sauber und einfach, ein Knopf, nichts im Weg).
 // Bauplan Desk Fassung 4, Abschnitte 2.1 bis 2.7. Reine Dateien, kein Build. Datenbank nur über die Serverfunktion desk.
 // Erster Knopf: 7 Postfach ablegen (Christian 09.11.2026).
 
 import { projekteModul } from './projekte.js';
-const VERSION = 19;
+const VERSION = 20;
 const API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk';
 // Kein Schlüssel in der Seite: die Serverfunktion desk ist wie die Seitenleiste ohne JWT-Prüfung erreichbar, jeder Aufruf braucht die Sitzung.
 const SITZUNG_KEY = 'desk.sitzung';

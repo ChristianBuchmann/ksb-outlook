@@ -16,7 +16,7 @@ const MODI = [['flasche', 'Marge pro Flasche'], ['weingut', 'Pro Weingut'], ['ge
 
 export function projekteModul(ctx) {
   const { api, h, app, render, grundFragen, fehler } = ctx;
-  const P = { liste: null, d: null, id: null, haken: [], rech: null, modus: 'flasche', szRech: {}, szName: null, meldung: null, laden: false, offen: new Set() };
+  const P = { liste: null, d: null, id: null, haken: [], rech: null, modus: 'flasche', szRech: {}, szName: null, meldung: null, laden: false, offen: new Set(), filter: {} };
 
   // ---------- Hilfen ----------
   const schmal = () => window.matchMedia('(max-width: 699px)').matches;
@@ -38,6 +38,17 @@ export function projekteModul(ctx) {
   const offenKey = () => `desk.offen.${P.id}`;
   function offenLaden() { try { P.offen = new Set(JSON.parse(merk(offenKey()) || '[]')); } catch { P.offen = new Set(); } }
   function offenMerken() { merk(offenKey(), JSON.stringify([...P.offen])); }
+  // v20: Die Zahlen oben sind zugleich die Filter. Ein Klick zeigt nur diese Weingüter, ein zweiter Klick wieder alle.
+  const FILTER = {
+    angeschrieben: { n: 'angeschrieben', t: (p) => p.stand && p.stand !== 'nicht_angeschrieben' },
+    geantwortet: { n: 'geantwortet', t: (p) => p.stand && !['nicht_angeschrieben', 'angeschrieben'].includes(p.stand) },
+    ohne: { n: 'ohne Antwort', t: (p) => p.stand === 'angeschrieben' },
+    angebot: { n: 'mit Angebot', t: (p) => angeboteVon(p.id).length > 0 },
+    abgesagt: { n: 'abgesagt', t: (p) => p.stand === 'abgesagt' },
+    wir: { n: 'Ball bei uns', t: (p) => p.ball === 'wir' },
+  };
+  const filterVon = (b) => (istAnbieter(b) && FILTER[P.filter[b.id]] ? P.filter[b.id] : null);
+  const sichtbar = (b) => { const f = filterVon(b), ps = posten(b.id); return f ? ps.filter(FILTER[f].t) : ps; };
   function gesperrt(p, a) {
     const sp = P.d?.projekt?.daten?.sperrliste || [];
     const w = String(a.wein || '').toLowerCase(), n = String(p.name || '').toLowerCase();
@@ -187,10 +198,12 @@ export function projekteModul(ctx) {
     const antw = ang.length - warten.length;
     const wir = ps.filter((p) => p.ball === 'wir');
     const fr = warten.map((p) => p.frist).filter(Boolean).sort()[0];
-    const z = (n, t) => `<div class="zahl"><b>${n}</b><span>${t}</span></div>`;
-    return `<div class="karte wk-lagekarte"><div class="zahlen">${z(ang.length, 'angeschrieben')}${z(antw, 'geantwortet')}${z(warten.length, 'ohne Antwort')}${z(mitAng.length, 'mit Angebot')}${z(absage.length, 'abgesagt')}${z(wir.length, 'Ball bei uns')}</div>
+    const f = filterVon(b);
+    const z = (k, n) => `<button type="button" class="zahl ${f === k ? 'an' : ''}" data-pr="filter" data-id="${b.id}" data-f="${k}" aria-pressed="${f === k}" title="${f === k ? 'Wieder alle zeigen' : 'Nur diese zeigen'}"><b>${n}</b><span>${FILTER[k].n}</span></button>`;
+    const n = sichtbar(b).length;
+    return `<div class="karte wk-lagekarte"><div class="zahlen">${z('angeschrieben', ang.length)}${z('geantwortet', antw)}${z('ohne', warten.length)}${z('angebot', mitAng.length)}${z('abgesagt', absage.length)}${z('wir', wir.length)}</div>
       ${fr ? `<p class="dim klein" style="margin:8px 0 0">Wer bis ${datum(fr)} nicht antwortet, fällt raus. Kein Nachfass.</p>` : ''}
-      <div class="reihe" style="margin-top:8px"><button class="chip" data-pr="alle-auf" data-id="${b.id}">Alle aufklappen</button><button class="chip" data-pr="alle-zu" data-id="${b.id}">Alle zuklappen</button></div></div>`;
+      <div class="reihe" style="margin-top:8px">${f ? `<span class="filter-an klein">Gefiltert: ${n} ${FILTER[f].n}</span><button class="chip an" data-pr="filter" data-id="${b.id}" data-f="">Alle zeigen ✕</button>` : '<span class="dim klein">Zahl antippen, um zu filtern.</span>'}<button class="chip" data-pr="alle-auf" data-id="${b.id}">Alle aufklappen</button><button class="chip" data-pr="alle-zu" data-id="${b.id}">Alle zuklappen</button></div></div>`;
   }
   function karteHtml(p, b) {
     if (p.art === 'weingut') return weingutKarte(p, b);
@@ -207,26 +220,28 @@ export function projekteModul(ctx) {
     </div>`;
   }
   function ansichtKanban(b) {
-    const ps = posten(b.id), st = staende(b);
+    const ps = sichtbar(b), st = staende(b);
     const ohne = ps.filter((p) => !p.stand || !st.some((s) => s.k === p.stand));
     const spalten = [...st.map((s) => ({ k: s.k, n: s.n, ps: ps.filter((p) => p.stand === s.k) })), ...(ohne.length ? [{ k: '', n: 'ohne Stand', ps: ohne }] : [])];
     const zeigen = istAnbieter(b) ? spalten.filter((c) => c.ps.length) : spalten;
+    if (!zeigen.length) return '<p class="dim">Keine Weingüter in diesem Filter.</p>';
     return `<div class="kanban">${zeigen.map((c) => `<div class="spalte-k"><div class="sk-kopf"><b>${h(c.n)}</b> <span class="dim klein">${c.ps.length}</span></div>${c.ps.map((p) => karteHtml(p, b)).join('') || '<div class="dim klein">leer</div>'}</div>`).join('')}</div>`;
   }
   function ansichtListe(b) {
     if (istAnbieter(b)) {
-      const ps = posten(b.id), st = staende(b);
+      const ps = sichtbar(b), st = staende(b);
       // Am Handy zuerst, wo wir dran sind: Angebote, Verkostung, Antworten; Wartende und Absagen unten.
       const REIHE = ['angebot', 'verkostung', 'geantwortet', 'frage_ana', 'ausgewaehlt', 'angeschrieben', 'abgesagt', 'nicht_angeschrieben'];
       const rang = (k) => { const i = REIHE.indexOf(k); return i < 0 ? 99 : i; };
       const gr = [...st.slice().sort((x, y) => rang(x.k) - rang(y.k)).map((s) => ({ n: s.n, ps: ps.filter((p) => p.stand === s.k) })), { n: 'ohne Stand', ps: ps.filter((p) => !p.stand || !st.some((s) => s.k === p.stand)) }].filter((g) => g.ps.length);
+      if (!gr.length) return '<p class="dim">Keine Weingüter in diesem Filter.</p>';
       return gr.map((g) => `<div class="gruppe"><div class="sk-kopf"><b>${h(g.n)}</b> <span class="dim klein">${g.ps.length}</span></div><div class="pliste">${g.ps.slice().sort((x, y) => (x.ball === 'wir' ? 0 : 1) - (y.ball === 'wir' ? 0 : 1) || x.sort - y.sort).map((p) => karteHtml(p, b)).join('')}</div></div>`).join('') || '<p class="dim">Noch nichts eingetragen.</p>';
     }
     const ps = posten(b.id).slice().sort((x, y) => (x.ball === 'wir' ? 0 : 1) - (y.ball === 'wir' ? 0 : 1) || String(x.frist || '9999').localeCompare(String(y.frist || '9999')) || x.sort - y.sort);
     return ps.length ? `<div class="pliste">${ps.map((p) => `<div class="pzeile">${karteHtml(p, b)}<div class="dim klein standtext">${h(standName(b, p.stand))}</div></div>`).join('')}</div>` : '<p class="dim">Noch nichts eingetragen.</p>';
   }
   function ansichtTabelle(b) {
-    const ps = posten(b.id);
+    const ps = sichtbar(b);
     if (!ps.length) return '<p class="dim">Noch nichts eingetragen.</p>';
     return `<table class="tabelle"><tr><th>Name</th><th>Stand</th><th>Ball</th><th class="optional">Nächster Schritt</th><th>Frist</th><th class="optional">Angebot</th></tr>${ps.map((p) => `<tr class="klick" data-pr="karte" data-id="${p.id}"><td>${h(p.name)}</td><td>${h(standName(b, p.stand))}</td><td>${h(p.ball || '')}</td><td class="optional klein">${h(p.naechster_schritt || '')}</td><td class="nowrap">${datum(p.frist)}</td><td class="optional klein">${angebotZeilen(p)}</td></tr>`).join('')}</table>`;
   }
@@ -470,8 +485,14 @@ export function projekteModul(ctx) {
       offenMerken();
     }
     else if (a === 'alle-auf' || a === 'alle-zu') {
-      for (const p of posten(id)) { if (a === 'alle-auf') P.offen.add(p.id); else P.offen.delete(p.id); }
+      const b = eintrag(id);
+      for (const p of (b ? sichtbar(b) : posten(id))) { if (a === 'alle-auf') P.offen.add(p.id); else P.offen.delete(p.id); }
       offenMerken(); render();
+    }
+    else if (a === 'filter') {
+      const f = el.dataset.f;
+      if (!f || P.filter[id] === f) delete P.filter[id]; else P.filter[id] = f;
+      render();
     }
     else if (a === 'w-aendern') { const p = eintrag(id); if (p) await karteAendern(p); }
     else if (a === 'w-angebot') { const p = eintrag(id); if (p) await angebotBearbeiten(p, null); }
