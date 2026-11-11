@@ -1,3 +1,4 @@
+// Desk v19 (11.11.2026): Weingüter als aufklappbare Karten mit Anfrage, Antwort, Angeboten, Marge und Konditionen, Lage oben, leere Spalten weg, Liste nach Stand gruppiert.
 // Desk v18 (10.11.2026): Projekte. Drei Ebenen: Projekt, Bereich (Unterprojekt), Posten (Karte). Der Projekttyp legt Ansichten, Stände und Kartenfelder fest.
 // Ansichten je Bereich: Liste, Kanban, Tabelle, Termine. Am Handy ist die Liste die Vorgabe. Die gewählte Ansicht merkt sich das Gerät.
 // Typ „Ausschreibung“: Rechner mit Angeboten, Szenarien, Zuschlag, Fragen bündeln. Gerechnet wird in der Datenbank (desk.szenario_rechnen), nicht hier.
@@ -15,7 +16,7 @@ const MODI = [['flasche', 'Marge pro Flasche'], ['weingut', 'Pro Weingut'], ['ge
 
 export function projekteModul(ctx) {
   const { api, h, app, render, grundFragen, fehler } = ctx;
-  const P = { liste: null, d: null, id: null, haken: [], rech: null, modus: 'flasche', szRech: {}, szName: null, meldung: null, laden: false };
+  const P = { liste: null, d: null, id: null, haken: [], rech: null, modus: 'flasche', szRech: {}, szName: null, meldung: null, laden: false, offen: new Set() };
 
   // ---------- Hilfen ----------
   const schmal = () => window.matchMedia('(max-width: 699px)').matches;
@@ -32,6 +33,16 @@ export function projekteModul(ctx) {
   const angeboteVon = (pid) => (P.d?.angebote || []).filter((a) => a.posten_id === pid && a.aktiv);
   const kategorien = () => P.d?.projekt?.daten?.kategorien || [];
   const richtwert = (code) => kategorien().find((k) => k.code === code);
+  const istAnbieter = (b) => b?.art === 'anbieter';
+  const margeVon = (a) => (a.verkauf != null && a.einkauf != null ? Number(a.verkauf) - Number(a.einkauf) : null);
+  const offenKey = () => `desk.offen.${P.id}`;
+  function offenLaden() { try { P.offen = new Set(JSON.parse(merk(offenKey()) || '[]')); } catch { P.offen = new Set(); } }
+  function offenMerken() { merk(offenKey(), JSON.stringify([...P.offen])); }
+  function gesperrt(p, a) {
+    const sp = P.d?.projekt?.daten?.sperrliste || [];
+    const w = String(a.wein || '').toLowerCase(), n = String(p.name || '').toLowerCase();
+    return sp.some((x) => n.includes(String(x.weingut).toLowerCase()) && w.includes(String(x.wein).toLowerCase()));
+  }
   function ansicht(b) {
     const ok = artInfo(b).ansichten || ['liste'];
     const gemerkt = merk(`desk.ansicht.${P.id}.${b.id}`);
@@ -45,7 +56,7 @@ export function projekteModul(ctx) {
   async function ladeListe() { P.laden = true; try { P.liste = (await api('projekte')).projekte; } catch (e) { fehler(e.message); } P.laden = false; }
   async function ladeProjekt(id) {
     P.laden = true;
-    try { P.d = await api('projekt', { id }); P.id = Number(id); } catch (e) { fehler(e.message); P.d = null; }
+    try { const neuId = P.id !== Number(id); P.d = await api('projekt', { id }); P.id = Number(id); if (neuId) offenLaden(); } catch (e) { fehler(e.message); P.d = null; }
     P.laden = false;
   }
   async function rechnen() {
@@ -114,7 +125,75 @@ export function projekteModul(ctx) {
       return `<div class="klein">${h(a.wein)}${a.jahrgang ? ' ' + h(a.jahrgang) : ''} · EK ${eur(a.einkauf)}${m != null ? ` · <span class="${m < 0 ? 'fehler' : ''}">Marge ${eur(m)}</span>` : ''}</div>`;
     }).join('');
   }
+  // ---------- Weingut-Karte (v19): zu zeigt sie das Wichtigste, aufgeklappt alles bis zu den Konditionen ----------
+  function kurzLage(p) {
+    const dt = p.daten || {}, an = angeboteVon(p.id);
+    if (an.length) {
+      const m = an.map(margeVon).filter((x) => x != null);
+      const best = m.length ? Math.max(...m) : null;
+      return `${an.length} ${an.length === 1 ? 'Angebot' : 'Angebote'}${best != null ? ` · Marge bis <b class="${best < 0 ? 'fehler' : 'gut'}">${eur(best)} €</b>` : ''}`;
+    }
+    if (dt.antwort_am) return `Antwort vom ${datum(dt.antwort_am)}`;
+    if (dt.angeschrieben_am) return `angeschrieben ${datum(dt.angeschrieben_am)}, noch keine Antwort`;
+    return '';
+  }
+  function angebotZeile(p, a) {
+    const k = richtwert(a.kategorie), m = margeVon(a);
+    const ueberRw = k && a.einkauf != null && Number(a.einkauf) > Number(k.richtwert);
+    const ueberZiel = k && !ueberRw && a.einkauf != null && Number(a.einkauf) > Number(k.ziel);
+    return `<div class="wk-ang">
+      <div><b>${h(a.wein)}</b>${a.jahrgang ? ' ' + h(a.jahrgang) : ''}</div>
+      <div class="reihe klein" style="gap:6px;margin:2px 0">${k ? `<span class="marke">${h(k.klasse)} · ${h(k.name)}</span>` : a.kategorie ? `<span class="marke">${h(a.kategorie)}</span>` : '<span class="marke">ohne Los</span>'}${a.stufe === 'indikativ' ? '<span class="marke">nur Preisangabe</span>' : ''}${gesperrt(p, a) ? '<span class="marke warn">gesperrt</span>' : ''}${ueberRw ? '<span class="marke warn">über Richtwert</span>' : ''}${ueberZiel ? '<span class="marke gelb">über Zielpreis</span>' : ''}</div>
+      <div class="wk-zahlen klein"><span>Einkauf <b>${eur(a.einkauf)}</b></span><span>an ANA ${eur(a.verkauf)}</span><span>Marge <b class="${m != null && m < 0 ? 'fehler' : 'gut'}">${eur(m)}</b></span>${a.menge ? `<span>${ganz(a.menge)} Fl.</span>` : ''}${a.verschluss ? `<span>${h(a.verschluss)}</span>` : ''}</div>
+      ${a.notiz ? `<div class="dim klein">${h(a.notiz)}</div>` : ''}
+      <button class="knopf klein still" data-pr="w-a-aendern" data-id="${p.id}" data-aid="${a.id}">Angebot ändern</button>
+    </div>`;
+  }
+  function weingutKarte(p, b) {
+    const dt = p.daten || {}, an = angeboteVon(p.id), auf = P.offen.has(p.id);
+    const liste = (l) => (Array.isArray(l) && l.length ? `<ul class="wk-liste">${l.map((x) => `<li>${h(x)}</li>`).join('')}</ul>` : '');
+    const teil = (t, inhalt) => (inhalt ? `<div class="wk-teil"><div class="wk-t">${t}</div>${inhalt}</div>` : '');
+    return `<div class="pkarte wk ${auf ? 'offen' : ''} ${dt.warnung ? 'mit-warnung' : ''}" data-karte="${p.id}">
+      <div class="wk-kopf" data-pr="auf" data-id="${p.id}" role="button" tabindex="0" aria-expanded="${auf}">
+        <div class="pk-kopf"><b>${h(p.name)}</b><span class="reihe" style="gap:4px">${dt.anrede ? `<span class="dim klein">${dt.anrede === 'du' ? 'Du' : 'Sie'}</span>` : ''}${ballMarke(p.ball)}</span></div>
+        ${dt.ansprechperson ? `<div class="dim klein">${h(dt.ansprechperson)}</div>` : ''}
+        <div class="klein wk-lage">${kurzLage(p)}</div>
+        ${dt.warnung ? `<div class="klein fehler">${h(dt.warnung)}</div>` : ''}
+        ${p.naechster_schritt && p.naechster_schritt !== 'keiner' ? `<div class="klein wk-schritt">${h(p.naechster_schritt)}</div>` : ''}
+        <div class="wk-pfeil dim klein">${auf ? 'Zuklappen ▴' : 'Konditionen ▾'}</div>
+      </div>
+      <div class="wk-auf">
+        ${teil(`Angefragt${dt.angeschrieben_am ? ' am ' + datum(dt.angeschrieben_am) : ''}`, liste(dt.angefragt))}
+        ${teil(`Antwort${dt.antwort_am ? ' vom ' + datum(dt.antwort_am) : ''}`, dt.antwort ? `<p class="klein">${h(dt.antwort)}</p>` : '<p class="klein dim">Noch keine Antwort.</p>')}
+        ${an.length ? teil('Angebote', an.map((a) => angebotZeile(p, a)).join('')) : ''}
+        ${teil('Konditionen', liste(dt.konditionen))}
+        ${dt.hinweis ? teil('Hinweis', `<p class="klein">${h(dt.hinweis)}</p>`) : ''}
+        ${teil('Kontakt', [dt.ansprechperson, dt.email].filter(Boolean).map((x) => `<div class="klein">${h(x)}</div>`).join(''))}
+        <div class="reihe wk-knoepfe">
+          ${p.link ? `<a class="knopf klein still" href="${h(p.link)}" target="_blank" rel="noopener">Mail öffnen</a>` : ''}
+          <button class="knopf klein still" data-pr="w-angebot" data-id="${p.id}">+ Angebot</button>
+          <button class="knopf klein still" data-pr="w-aendern" data-id="${p.id}">Ändern</button>
+        </div>
+        <select class="stand-wahl" data-pr="stand" data-id="${p.id}" aria-label="Stand">${[{ k: '', n: 'ohne Stand' }, ...staende(b)].map((s) => `<option value="${h(s.k)}" ${(p.stand || '') === s.k ? 'selected' : ''}>${h(s.n)}</option>`).join('')}</select>
+      </div>
+    </div>`;
+  }
+  function lageAnbieter(b) {
+    const ps = posten(b.id);
+    const ang = ps.filter((p) => p.stand && p.stand !== 'nicht_angeschrieben');
+    const warten = ps.filter((p) => p.stand === 'angeschrieben');
+    const absage = ps.filter((p) => p.stand === 'abgesagt');
+    const mitAng = ps.filter((p) => angeboteVon(p.id).length);
+    const antw = ang.length - warten.length;
+    const wir = ps.filter((p) => p.ball === 'wir');
+    const fr = warten.map((p) => p.frist).filter(Boolean).sort()[0];
+    const z = (n, t) => `<div class="zahl"><b>${n}</b><span>${t}</span></div>`;
+    return `<div class="karte wk-lagekarte"><div class="zahlen">${z(ang.length, 'angeschrieben')}${z(antw, 'geantwortet')}${z(warten.length, 'ohne Antwort')}${z(mitAng.length, 'mit Angebot')}${z(absage.length, 'abgesagt')}${z(wir.length, 'Ball bei uns')}</div>
+      ${fr ? `<p class="dim klein" style="margin:8px 0 0">Wer bis ${datum(fr)} nicht antwortet, fällt raus. Kein Nachfass.</p>` : ''}
+      <div class="reihe" style="margin-top:8px"><button class="chip" data-pr="alle-auf" data-id="${b.id}">Alle aufklappen</button><button class="chip" data-pr="alle-zu" data-id="${b.id}">Alle zuklappen</button></div></div>`;
+  }
   function karteHtml(p, b) {
+    if (p.art === 'weingut') return weingutKarte(p, b);
     const dt = p.daten || {};
     return `<div class="pkarte" data-pr="karte" data-id="${p.id}">
       <div class="pk-kopf"><b>${h(p.name)}</b>${dt.anrede ? `<span class="dim klein">${h(dt.anrede === 'du' ? 'Du' : 'Sie')}</span>` : ''}</div>
@@ -131,9 +210,18 @@ export function projekteModul(ctx) {
     const ps = posten(b.id), st = staende(b);
     const ohne = ps.filter((p) => !p.stand || !st.some((s) => s.k === p.stand));
     const spalten = [...st.map((s) => ({ k: s.k, n: s.n, ps: ps.filter((p) => p.stand === s.k) })), ...(ohne.length ? [{ k: '', n: 'ohne Stand', ps: ohne }] : [])];
-    return `<div class="kanban">${spalten.map((c) => `<div class="spalte-k"><div class="sk-kopf"><b>${h(c.n)}</b> <span class="dim klein">${c.ps.length}</span></div>${c.ps.map((p) => karteHtml(p, b)).join('') || '<div class="dim klein">leer</div>'}</div>`).join('')}</div>`;
+    const zeigen = istAnbieter(b) ? spalten.filter((c) => c.ps.length) : spalten;
+    return `<div class="kanban">${zeigen.map((c) => `<div class="spalte-k"><div class="sk-kopf"><b>${h(c.n)}</b> <span class="dim klein">${c.ps.length}</span></div>${c.ps.map((p) => karteHtml(p, b)).join('') || '<div class="dim klein">leer</div>'}</div>`).join('')}</div>`;
   }
   function ansichtListe(b) {
+    if (istAnbieter(b)) {
+      const ps = posten(b.id), st = staende(b);
+      // Am Handy zuerst, wo wir dran sind: Angebote, Verkostung, Antworten; Wartende und Absagen unten.
+      const REIHE = ['angebot', 'verkostung', 'geantwortet', 'frage_ana', 'ausgewaehlt', 'angeschrieben', 'abgesagt', 'nicht_angeschrieben'];
+      const rang = (k) => { const i = REIHE.indexOf(k); return i < 0 ? 99 : i; };
+      const gr = [...st.slice().sort((x, y) => rang(x.k) - rang(y.k)).map((s) => ({ n: s.n, ps: ps.filter((p) => p.stand === s.k) })), { n: 'ohne Stand', ps: ps.filter((p) => !p.stand || !st.some((s) => s.k === p.stand)) }].filter((g) => g.ps.length);
+      return gr.map((g) => `<div class="gruppe"><div class="sk-kopf"><b>${h(g.n)}</b> <span class="dim klein">${g.ps.length}</span></div><div class="pliste">${g.ps.slice().sort((x, y) => (x.ball === 'wir' ? 0 : 1) - (y.ball === 'wir' ? 0 : 1) || x.sort - y.sort).map((p) => karteHtml(p, b)).join('')}</div></div>`).join('') || '<p class="dim">Noch nichts eingetragen.</p>';
+    }
     const ps = posten(b.id).slice().sort((x, y) => (x.ball === 'wir' ? 0 : 1) - (y.ball === 'wir' ? 0 : 1) || String(x.frist || '9999').localeCompare(String(y.frist || '9999')) || x.sort - y.sort);
     return ps.length ? `<div class="pliste">${ps.map((p) => `<div class="pzeile">${karteHtml(p, b)}<div class="dim klein standtext">${h(standName(b, p.stand))}</div></div>`).join('')}</div>` : '<p class="dim">Noch nichts eingetragen.</p>';
   }
@@ -166,7 +254,7 @@ export function projekteModul(ctx) {
         ${ok.length > 1 ? ok.map((x) => `<button class="chip ${x === a ? 'an' : ''}" data-pr="ansicht" data-id="${b.id}" data-a="${x}">${ANSICHTEN[x]}</button>`).join('') : ''}
         <button class="knopf klein" data-pr="neu" data-id="${b.id}">+ Neu</button>
         ${b.art === 'fragen' ? `<button class="knopf klein still" data-pr="fragen" ${offeneFragen ? '' : 'disabled'}>Fragen bündeln (${offeneFragen})</button>` : ''}
-      </div></div>${P.meldung ? `<div class="hinweis gruen">${P.meldung}</div>` : ''}${body}${ansichtKopfExtra(b)}`;
+      </div></div>${P.meldung ? `<div class="hinweis gruen">${P.meldung}</div>` : ''}${istAnbieter(b) ? lageAnbieter(b) : ''}${body}${ansichtKopfExtra(b)}`;
   }
 
   // ---------- Rechner ----------
@@ -372,6 +460,22 @@ export function projekteModul(ctx) {
     const el = ev.target.closest('[data-pr]'); if (!el || el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
     const a = el.dataset.pr, id = Number(el.dataset.id);
     if (a === 'karte') { const p = eintrag(id); if (p) detail(p); }
+    else if (a === 'auf') {
+      // Nur diese Karte auf- oder zuklappen, ohne die Seite neu zu zeichnen: der Kopf bleibt stehen, die Karte wächst nach unten.
+      const k = el.closest('.wk'); if (!k) return;
+      const auf = !k.classList.contains('offen');
+      k.classList.toggle('offen', auf); el.setAttribute('aria-expanded', String(auf));
+      const pf = k.querySelector('.wk-pfeil'); if (pf) pf.textContent = auf ? 'Zuklappen ▴' : 'Konditionen ▾';
+      if (auf) P.offen.add(id); else P.offen.delete(id);
+      offenMerken();
+    }
+    else if (a === 'alle-auf' || a === 'alle-zu') {
+      for (const p of posten(id)) { if (a === 'alle-auf') P.offen.add(p.id); else P.offen.delete(p.id); }
+      offenMerken(); render();
+    }
+    else if (a === 'w-aendern') { const p = eintrag(id); if (p) await karteAendern(p); }
+    else if (a === 'w-angebot') { const p = eintrag(id); if (p) await angebotBearbeiten(p, null); }
+    else if (a === 'w-a-aendern') { const p = eintrag(id), an = (P.d.angebote || []).find((x) => x.id === Number(el.dataset.aid)); if (p && an) await angebotBearbeiten(p, an); }
     else if (a === 'ansicht') { merk(`desk.ansicht.${P.id}.${id}`, el.dataset.a); render(); }
     else if (a === 'neu') { const b = eintrag(id); if (b) await neuerPosten(b); }
     else if (a === 'b-neu') await neuerBereich();
@@ -387,6 +491,9 @@ export function projekteModul(ctx) {
     }
     else if (a === 'zuschlag') await zuschlag();
     else if (a === 'fragen') await fragenBuendeln();
+  });
+  document.addEventListener('keydown', (ev) => {
+    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches?.('.wk-kopf')) { ev.preventDefault(); ev.target.click(); }
   });
   document.addEventListener('change', async (ev) => {
     const el = ev.target.closest('[data-pr]'); if (!el) return;

@@ -1,4 +1,4 @@
-/* Desk v18 (10.11.2026; Projekte). v17 (10.11.2026; Wecker und Presse). v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
+/* Desk v19 (11.11.2026; Weingüter als aufklappbare Karten). Desk v18 (10.11.2026; Projekte). v17 (10.11.2026; Wecker und Presse). v13 (09.11.2026). Eine App, drei Breiten (Bauplan 2.1). Reine Dateien, kein Build. */
 :root {
   --rot: #7a1f2e;
   --rot-hell: #a8303f;
@@ -200,7 +200,7 @@ a.plink { display: block; color: inherit; }
 a.plink:hover { text-decoration: none; border-color: var(--rot); }
 .marke.ball-wir { color: var(--rot); border-color: color-mix(in srgb, var(--rot) 40%, transparent); }
 .kanban { display: flex; gap: 10px; overflow-x: auto; align-items: flex-start; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
-.spalte-k { flex: 0 0 250px; background: color-mix(in srgb, var(--grau) 8%, transparent); border-radius: var(--radius); padding: 8px; min-height: 80px; }
+.spalte-k { flex: 1 1 0; min-width: 240px; max-width: 360px; background: color-mix(in srgb, var(--grau) 8%, transparent); border-radius: var(--radius); padding: 8px; min-height: 80px; }
 .sk-kopf { padding: 2px 4px 8px; }
 .pkarte { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px; padding: 9px 10px; margin-bottom: 8px; cursor: pointer; box-shadow: var(--schatten); overflow-wrap: anywhere; }
 .pkarte:hover { border-color: var(--rot); }
@@ -223,8 +223,39 @@ dialog.formdlg.breit { max-width: 640px; }
 .ff .fl { color: var(--grau); font-size: .8rem; }
 .ff input[type=date], .ff input[type=number], .ff select { width: 100%; }
 .pzeile2 { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--linie); }
+/* v19: Weingut-Karte, zu das Wichtigste, aufgeklappt Anfrage, Antwort, Angebote, Konditionen */
+.pkarte.wk { padding: 0; cursor: default; }
+.pkarte.wk:hover { border-color: var(--linie); }
+.wk.mit-warnung { border-left: 3px solid var(--rotton); }
+.wk-kopf { padding: 9px 10px; cursor: pointer; border-radius: 8px; }
+.wk-kopf:hover { background: color-mix(in srgb, var(--rot) 4%, transparent); }
+.wk-kopf:focus-visible { outline: 2px solid var(--rot); outline-offset: -2px; }
+.wk-lage, .wk-schritt { margin-top: 4px; }
+.wk-pfeil { margin-top: 6px; }
+.wk-auf { display: none; padding: 2px 10px 10px; border-top: 1px solid var(--linie); }
+.wk.offen .wk-auf { display: block; }
+.wk-teil { padding-top: 9px; }
+.wk-t { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--grau); margin-bottom: 3px; }
+.wk-teil p { margin: 0; }
+.wk-liste { margin: 0; padding-left: 18px; font-size: .85rem; }
+.wk-ang { padding: 7px 0; border-top: 1px dashed var(--linie); }
+.wk-teil .wk-t + .wk-ang { border-top: 0; padding-top: 0; }
+.wk-ang .knopf { margin-top: 5px; }
+.wk-zahlen { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.wk-knoepfe { margin-top: 10px; }
+.wk-knoepfe a.knopf:hover { text-decoration: none; }
+.gut { color: var(--gruen); }
+.marke.warn { color: var(--rotton); border-color: color-mix(in srgb, var(--rotton) 40%, transparent); }
+.marke.gelb { color: var(--gelb); border-color: color-mix(in srgb, var(--gelb) 40%, transparent); }
+.gruppe { margin-bottom: 14px; }
+.gruppe .pliste .pkarte { margin-bottom: 8px; }
+.wk-lagekarte .zahl b { font-size: 1.15rem; }
 @media (max-width: 699px) {
-  .spalte-k { flex-basis: 78vw; }
+  .spalte-k { flex: 0 0 78vw; max-width: none; }
+  .wk-lagekarte .zahlen { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .wk-lagekarte .zahl { padding: 6px 8px; }
+  .wk-lagekarte .zahl b { font-size: 1rem; }
+  .wk-lagekarte .zahl span { font-size: .72rem; }
   .summe { bottom: 70px; }
   .termin { grid-template-columns: 78px 1fr; }
   .termin .marke { display: none; }
