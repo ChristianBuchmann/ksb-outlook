@@ -530,7 +530,7 @@ function seiteSteuerung() {
     <div class="karte"><h2>Schalter</h2><p class="dim klein">Die heutigen Schalter des Backoffice. Werden mit ihren Bereichen zu Einstellungen der Knöpfe.</p>
       <table class="tabelle"><tr><th></th><th>Name</th><th class="optional">Erklärung</th></tr>${L.schalter.map((s) => `<tr><td><span class="marke ${s.an ? 'an' : 'aus'}">${s.an ? 'an' : 'aus'}</span></td><td class="mono">${h(s.name)}</td><td class="optional klein dim">${h(s.erklaerung || '')}</td></tr>`).join('')}</table>
     </div>
-    <div class="karte"><h2>Anmeldung</h2><p>${S.wer ? `${h(S.wer.name)}, ${h(S.wer.email)}` : ''}. Sitzung 30 Tage auf diesem Gerät.</p><button class="knopf still" data-tu="abmelden">Abmelden</button></div>
+    <div class="karte"><h2>Anmeldung</h2><p>${S.wer ? `${h(S.wer.name)}, ${h(S.wer.email)}` : ''}. Die Anmeldung bleibt auf diesem Gerät. Jede Nutzung verlängert sie auf ein Jahr, Abmelden beendet sie sofort.</p><button class="knopf still" data-tu="abmelden">Abmelden</button></div>
     <div class="karte"><h2>Version</h2><p>Desk v${VERSION}, Quelle ksb-leitstand desk/app, veröffentlicht über GitHub Pages. Register desk/versionen.json. Jede Änderung an Knöpfen und Einstellungen hat ihre eigene Version mit Grund.</p></div>
   </div>`;
 }
