@@ -16,7 +16,7 @@ const MODI = [['flasche', 'Marge pro Flasche'], ['weingut', 'Pro Weingut'], ['ge
 
 export function projekteModul(ctx) {
   const { api, h, app, render, grundFragen, fehler } = ctx;
-  const P = { liste: null, d: null, id: null, haken: [], rech: null, modus: 'flasche', szRech: {}, szName: null, meldung: null, laden: false, offen: new Set(), filter: {} };
+  const P = { liste: null, d: null, id: null, zuschlaege: [], haken: [], rech: null, modus: 'flasche', szRech: {}, szName: null, meldung: null, laden: false, offen: new Set(), filter: {} };
 
   // ---------- Hilfen ----------
   const schmal = () => window.matchMedia('(max-width: 699px)').matches;
@@ -84,7 +84,7 @@ export function projekteModul(ctx) {
     if (!t[0]) { await ladeListe(); render(); return; }
     if (P.id !== Number(t[0]) || !P.d) { P.d = null; P.haken = []; P.rech = null; P.szRech = {}; render(); await ladeProjekt(t[0]); }
     else { render(); await ladeProjekt(t[0]); }
-    if (t[1] === 'rechner') { await szenarienRechnen(); await rechnen(); }
+    if (t[1] === 'rechner') { await szenarienRechnen(); await rechnen(); await zuschlaegeLaden(); }
     render();
   }
 
@@ -305,8 +305,30 @@ export function projekteModul(ctx) {
       <div class="karte"><p class="dim klein">Je Los zählt nur ein Angebot, das zuerst angehakte. Alternativen im gleichen Los werden nie als mehrere volle Lose addiert.</p><div style="overflow-x:auto">${tab}</div></div>
       ${leiste}<div class="karte">${ergebnis}</div>
       <div class="reihe"><button class="knopf" data-pr="sz-speichern" ${P.haken.length ? '' : 'disabled'}>Szenario speichern</button><button class="knopf still" data-pr="sz-leeren" ${P.haken.length ? '' : 'disabled'}>Haken entfernen</button>
-        <button class="knopf gefahr" data-pr="zuschlag" ${R && R.weingueter.length ? '' : 'disabled'}>Zuschlag erteilen</button></div>
-      ${szenarienHtml()}`;
+        <button class="knopf gefahr" data-pr="zuschlag" ${R && R.weingueter.length ? '' : 'disabled'}>Auswahl ANA vorschlagen</button></div>
+      ${zuschlaegeHtml()}${szenarienHtml()}`;
+  }
+  // Zuschlag in zwei Schritten (Nachprüfung 12.11.2026, D16): erst der Vorschlag an ANA, dann mit belegter Bestätigung die Zusage an die Weingüter.
+  async function zuschlaegeLaden() { try { P.zuschlaege = (await api('zuschlaege', { wurzel: P.id })).zuschlaege || []; } catch { P.zuschlaege = []; } }
+  function zuschlaegeHtml() {
+    const zs = (P.zuschlaege || []).filter((z) => z.status !== 'UEBERHOLT');
+    if (!zs.length) return '';
+    return `<div class="karte" style="margin-top:14px"><h2>Vorschläge an ANA</h2>${zs.map((z) => {
+      const kopf = `<b>${h(z.name)}</b> · ${h(z.am)} · ${h((z.weingueter || []).join(', '))}`;
+      if (z.status === 'BESTAETIGT') return `<p>${kopf}<br><span class="dim klein">Von ANA bestätigt am ${h(z.bestaetigt_am || '')}${z.bestaetigt_beleg ? ' · Beleg: ' + h(z.bestaetigt_beleg) : ''}. Die Entwürfe an die Weingüter liegen bereit.</span></p>`;
+      if (z.gilt_noch === false) return `<p>${kopf}<br><span class="dim klein">${h(z.hindernis || 'Dieser Vorschlag gilt nicht mehr.')}</span></p>`;
+      return `<p>${kopf}<br><span class="dim klein">${z.vorschlag_gesendet ? 'Der Vorschlag ist gesendet.' : 'Der Vorschlag liegt als Entwurf bereit und ist noch nicht gesendet.'} An die Weingüter geht erst etwas, wenn die Bestätigung von ANA eingetragen ist.</span><br><button class="knopf klein" data-pr="zs-best" data-id="${z.id}">Bestätigung von ANA eintragen</button></p>`;
+    }).join('')}</div>`;
+  }
+  async function zuschlagBestaetigen(id) {
+    const r = await formular('Bestätigung von ANA eintragen', 'Erst mit der Bestätigung entstehen die Entwürfe an die Weingüter, aus genau dieser Auswahl. Gesendet wird nichts, das tust Du selbst.', [{ n: 'beleg', l: 'Beleg: Mail oder Gespräch von ANA, mit Datum', typ: 'area' }], 'ANA hat die Auswahl bestätigt');
+    if (!r) return;
+    await speichern(async () => {
+      const x = await api('zuschlag_bestaetigen', { zuschlag: id, beleg: r.werte.beleg, grund: r.grund });
+      nimm(x);
+      P.meldung = `${x.entwuerfe} Entwürfe an die Weingüter angelegt.${x.ohne_mail?.length ? ` Ohne E-Mail-Adresse, bitte nachtragen: ${x.ohne_mail.map(h).join(', ')}.` : ''}${x.hinweis ? ' ' + x.hinweis : ''}`;
+      await zuschlaegeLaden();
+    });
   }
   function szenarienHtml() {
     const sz = P.d.szenarien || [];
@@ -454,20 +476,20 @@ export function projekteModul(ctx) {
   }
   async function zuschlag() {
     const wg = P.rech?.weingueter?.map((w) => w.weingut).join(', ');
-    const grund = await grundFragen('Zuschlag erteilen', `Diese Weingüter gehen auf „ausgewählt“: ${wg}. Je Weingut entsteht ein Entwurf, dazu einer an ANA. Gesendet wird nichts, das tust Du selbst.`, `Zuschlag nach Szenario ${P.szName || 'aktuelle Auswahl'}`);
+    const grund = await grundFragen('Auswahl ANA vorschlagen', `Diese Auswahl wird ANA vorgeschlagen: ${wg}. Es entsteht ein Entwurf an ANA. An die Weingüter geht erst etwas, wenn die Bestätigung von ANA eingetragen ist. Gesendet wird nichts, das tust Du selbst.`, `Vorschlag nach Szenario ${P.szName || 'aktuelle Auswahl'}`);
     if (!grund) return;
     await speichern(async () => {
       const r = await api('zuschlag_erteilen', { wurzel: P.id, haken: P.haken, name: P.szName || 'aktuelle Auswahl', grund });
       nimm(r);
-      P.meldung = `${r.entwuerfe} Entwürfe angelegt.${r.ohne_mail?.length ? ` Ohne E-Mail-Adresse, bitte nachtragen: ${r.ohne_mail.map(h).join(', ')}.` : ''}${r.ohne_auftraggeber_mail ? ' Keine Adresse bei ANA hinterlegt.' : ''}`;
-      nav(`projekt/${P.id}`);
+      P.meldung = r.ohne_auftraggeber_mail ? 'Keine Adresse bei ANA hinterlegt, es entstand kein Entwurf.' : (r.entwuerfe ? 'Der Vorschlag an ANA liegt als Entwurf bereit.' : 'Dieser Vorschlag liegt schon als Entwurf vor.') + ' An die Weingüter geht erst etwas, wenn die Bestätigung von ANA eingetragen ist.';
       await rechnen();
+      await zuschlaegeLaden();
     });
   }
   async function fragenBuendeln() {
-    const grund = await grundFragen('Fragen bündeln', 'Alle offenen Fragen gehen als ein Entwurf an ANA und stehen danach auf „gestellt“. Gesendet wird nichts, das tust Du selbst.', 'Fragen gebündelt');
+    const grund = await grundFragen('Fragen bündeln', 'Alle offenen Fragen gehen als ein Entwurf an ANA. Sie bleiben offen und bei uns, bis Du den Entwurf gesendet hast. Erst dann stehen sie auf „gestellt“.', 'Fragen gebündelt');
     if (!grund) return;
-    await speichern(async () => { const r = await api('fragen_buendeln', { wurzel: P.id, grund }); nimm(r); P.meldung = r.ohne_auftraggeber_mail ? 'Keine Adresse bei ANA hinterlegt, es entstand kein Entwurf.' : `${r.fragen} Fragen in einem Entwurf, Stand „gestellt“.`; });
+    await speichern(async () => { const r = await api('fragen_buendeln', { wurzel: P.id, grund }); nimm(r); P.meldung = r.ohne_auftraggeber_mail ? 'Keine Adresse bei ANA hinterlegt, es entstand kein Entwurf.' : `${r.fragen} Fragen in einem Entwurf. Gestellt sind sie, sobald Du ihn gesendet hast.`; });
   }
 
   // ---------- Ereignisse ----------
@@ -511,6 +533,7 @@ export function projekteModul(ctx) {
       if (grund) await speichern(async () => { nimm(await api('szenario_speichern', { id, wurzel: P.id, name: s.name, aktiv: false, grund })); await szenarienRechnen(); });
     }
     else if (a === 'zuschlag') await zuschlag();
+    else if (a === 'zs-best') await zuschlagBestaetigen(id);
     else if (a === 'fragen') await fragenBuendeln();
   });
   document.addEventListener('keydown', (ev) => {

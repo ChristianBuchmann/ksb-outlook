@@ -4,7 +4,7 @@
 // Erster Knopf: 7 Postfach ablegen (Christian 09.11.2026).
 
 import { projekteModul } from './projekte.js';
-const VERSION = 20;
+const VERSION = 21;
 const API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk';
 // Kein Schlüssel in der Seite: die Serverfunktion desk ist wie die Seitenleiste ohne JWT-Prüfung erreichbar, jeder Aufruf braucht die Sitzung.
 const SITZUNG_KEY = 'desk.sitzung';
