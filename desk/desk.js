@@ -1,11 +1,13 @@
-// Desk v20 (11.11.2026; v14 Zuschnitt, v15 Symbol, v16 Manifest: Homescreen-Symbol öffnet Safari, v17 Wecker an jedem Knopf und Seite Presse für Knopf 40, v18 Projekte mit Typen, Kanban, Liste, Tabelle, Termine, Rechner und Szenarien in projekte.js, v19 Weingüter als aufklappbare Karten mit Konditionen, v20 Zahlen oben sind zugleich die Filter). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
+// Desk v21 (11.11.2026; v14 Zuschnitt, v15 Symbol, v16 Manifest: Homescreen-Symbol öffnet Safari, v17 Wecker an jedem Knopf und Seite Presse für Knopf 40, v18 Projekte mit Typen, Kanban, Liste, Tabelle, Termine, Rechner und Szenarien in projekte.js, v19 Weingüter als aufklappbare Karten mit Konditionen, v20 Zahlen oben sind zugleich die Filter, v21 Gespräch im Desk in gespraech.js). Die Hülle des neuen Desk: Anmeldung per Mail-Link. Startseite ist die Arbeitsfläche (jetzt: Postfach ablegen).
 // Heute, Knöpfe und Steuerung liegen hinter „Technik“ (Christian 09.11.2026: sauber und einfach, ein Knopf, nichts im Weg).
 // Bauplan Desk Fassung 4, Abschnitte 2.1 bis 2.7. Reine Dateien, kein Build. Datenbank nur über die Serverfunktion desk.
 // Erster Knopf: 7 Postfach ablegen (Christian 09.11.2026).
 
 import { projekteModul } from './projekte.js';
-const VERSION = 20;
+import { gespraechModul } from './gespraech.js';
+const VERSION = 21;
 const API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk';
+const API_G = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk-gespraech';
 // Kein Schlüssel in der Seite: die Serverfunktion desk ist wie die Seitenleiste ohne JWT-Prüfung erreichbar, jeder Aufruf braucht die Sitzung.
 const SITZUNG_KEY = 'desk.sitzung';
 const BEREICHE = { MAILS: 'Mails und Entwürfe', MELDUNGEN: 'Meldungen an Dich', FINANZ: 'Finanz und Rechnungen', RECHT: 'Verträge und Rechtliches', MATERIAL: 'Künstlermaterial', KAMPAGNEN: 'Kampagnen und Akquise', SOCIAL: 'Social Media', YOOL: 'YOOL und Tourneen', PRIVAT: 'Privat', STEUERUNG: 'Steuerung und Technik' };
@@ -78,7 +80,7 @@ const breit = () => window.matchMedia('(min-width: 1100px)').matches;
 async function api(aufruf, args = {}, opt = {}) {
   let r;
   try {
-    r = await fetch(API, {
+    r = await fetch(opt.url || API, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-desk-sitzung': S.sitzung },
     body: JSON.stringify({ aufruf, args }),
@@ -91,6 +93,7 @@ async function api(aufruf, args = {}, opt = {}) {
   if (!r.ok || j.ok === false) throw new Error(j.fehler || `Fehler ${r.status}`);
   return j;
 }
+const apiG = (aufruf, args = {}) => api(aufruf, args, { url: API_G });
 function abmeldenLokal() { S.sitzung = ''; S.wer = null; S.lage = null; S.heute = null; localStorage.removeItem(SITZUNG_KEY); }
 
 async function ladeLage(still) {
@@ -200,7 +203,8 @@ function grundFragen(titel, text, vorgabe = '') {
 }
 
 // ---------- Projekte (v18) ----------
-const PR = projekteModul({ api, h, app, render, grundFragen, fehler: (m) => { S.fehler = m; }, fehlerLeiste });
+const GS = gespraechModul({ apiG, api, h, render, wann, fehler: (m) => { S.fehler = m; }, fehlerLeiste });
+const PR = projekteModul({ api, h, app, render, grundFragen, fehler: (m) => { S.fehler = m; }, fehlerLeiste, gespraech: (pid, fid) => GS.projektTeil(pid, fid) });
 
 // ---------- Aktionen ----------
 async function schalten(k) {
@@ -316,7 +320,7 @@ function pollen() {
 // ---------- Ansichten ----------
 function menue(seite) {
   // Nur, was fertig ist. Heute kommt ins Menü, wenn der Postmeister steht; jeder weitere Knopf, wenn er arbeitet.
-  const e = [['projekte', '▦', 'Projekte'], ['ablage', '▤', 'Ablage'], ['presse', '❝', 'Presse'], ['technik', '⚙', 'Technik']];
+  const e = [['gespraech', '✎', 'Gespräch'], ['projekte', '▦', 'Projekte'], ['ablage', '▤', 'Ablage'], ['presse', '❝', 'Presse'], ['technik', '⚙', 'Technik']];
   return `<nav class="menue">
     <div class="marke"><b>Desk</b><span>v${VERSION}</span></div>
     ${e.map(([k, i, t]) => `<a href="#${k}" class="${seite === k || (k === 'projekte' && seite === 'projekt') || (k === 'technik' && TECHNIK.has(seite)) ? 'aktiv' : ''}"><span class="ico">${i}</span><span class="text">${t}</span></a>`).join('')}
@@ -557,12 +561,15 @@ function render() {
   else if (seite === 'knoepfe') inhalt = seiteKnoepfe(null);
   else if (seite === 'knopf') inhalt = seiteKnoepfe(arg);
   else if (seite === 'presse') inhalt = seitePresse();
+  else if (seite === 'gespraech') inhalt = GS.seite(arg);
   else if (seite === 'projekte') inhalt = PR.seite('');
   else if (seite === 'projekt') inhalt = PR.seite(arg);
   else if (seite === 'technik') inhalt = seiteTechnik();
   else if (seite === 'steuerung') inhalt = seiteSteuerung();
   else inhalt = seiteAblage();
+  const halt = GS.vorRender();
   app.innerHTML = menue(seite) + inhalt;
+  GS.nachRender(halt);
 }
 
 async function seiteLaden() {
@@ -573,6 +580,9 @@ async function seiteLaden() {
   if (seite === 'knopf' && arg) { if (!S.knopf[arg]) render(); await ladeKnopf(arg); }
   if (seite === 'ablage' && !S.ablage.protokoll) { render(); await ablageProtokoll(null); }
   if (seite === 'presse') { render(); await presseLaden(); }
+  if (seite === 'gespraech') { await GS.laden({ fid: arg.split('/')[0] }); return; }
+  const pg = seite === 'projekt' && arg.match(/^(\d+)\/gespraech(?:\/(\d+))?/);
+  if (pg) { await Promise.all([PR.laden(arg), GS.laden({ pid: Number(pg[1]), fid: pg[2] })]); return; }
   if (seite === 'projekte' || seite === 'projekt') { await PR.laden(seite === 'projekt' ? arg : ''); return; }
   render();
 }

@@ -339,13 +339,13 @@ export function projekteModul(ctx) {
     }
     if (!P.d) return `<div class="inhalt"><a href="#projekte">← Projekte</a>${ctx.fehlerLeiste()}<div class="laden">Projekt wird geladen</div></div>`;
     const bs = bereiche();
-    const aktuell = t[1] === 'rechner' ? 'rechner' : t[1] === 'verlauf' ? 'verlauf' : (bs.find((b) => String(b.id) === t[1])?.id ?? bs[0]?.id);
-    const tabs = [...bs.map((b) => [b.id, b.name]), ...(hat('angebote') ? [['rechner', 'Rechner']] : []), ['verlauf', 'Verlauf']];
+    const aktuell = ['rechner', 'verlauf', 'gespraech'].includes(t[1]) ? t[1] : (bs.find((b) => String(b.id) === t[1])?.id ?? bs[0]?.id);
+    const tabs = [...bs.map((b) => [b.id, b.name]), ...(hat('angebote') ? [['rechner', 'Rechner']] : []), ['gespraech', 'Gespräch'], ['verlauf', 'Verlauf']];
     const b = typeof aktuell === 'number' ? bs.find((x) => x.id === aktuell) : null;
     return `<div class="inhalt"><div class="kopf"><div><a href="#projekte" class="klein">← Projekte</a><h1>${h(P.d.projekt.name)}</h1><span class="dim klein">${h(P.d.typ.name)} · Version ${P.d.projekt.version}</span></div></div>
       ${ctx.fehlerLeiste()}
       <div class="tabs">${tabs.map(([id, n]) => `<a class="chip tab ${String(id) === String(aktuell) ? 'an' : ''}" href="#projekt/${P.id}/${id}">${h(n)}</a>`).join('')}<button class="chip tab" data-pr="b-neu">+ Bereich</button></div>
-      ${aktuell === 'rechner' ? seiteRechner() : aktuell === 'verlauf' ? seiteVerlauf() : b ? seiteBereich(b) : '<p class="dim">Noch kein Bereich.</p>'}</div>`;
+      ${aktuell === 'rechner' ? seiteRechner() : aktuell === 'verlauf' ? seiteVerlauf() : aktuell === 'gespraech' ? ctx.gespraech(P.id, Number(t[2]) || null) : b ? seiteBereich(b) : '<p class="dim">Noch kein Bereich.</p>'}</div>`;
   }
 
   // ---------- Aktionen ----------
