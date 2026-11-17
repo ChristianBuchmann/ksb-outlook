@@ -164,7 +164,7 @@ details.auf[open] > summary::before{content:"− ";}
 <script>
 /* Christian 17.11.2026 17:26: Outlook zeigte nach der Veröffentlichung die alte Seitenleiste aus dem Zwischenspeicher.
    Beim Start liest die Seite ihre eigene Adresse ohne Zwischenspeicher. Steht dort ein anderer Stand, lädt sie einmal neu. */
-const SL_STAND = "2026-11-17-ablage-1";
+const SL_STAND = "2026-11-17-antworten-1";
 (async () => { try {
   const r = await fetch(location.href.split("#")[0], {cache: "no-store"}); const t = await r.text();
   const m = t.match(/const SL_STAND = "([^"]+)"/);
@@ -311,8 +311,38 @@ function zeichnen(){
   binden();
 }
 
+/* ---------- Antworten (Christian 17.11.2026 18:11: in der Seitenleiste keine Möglichkeit, zu antworten) ----------
+   Selbst schreiben: öffnet das Outlook-Fenster für Antwort, Allen antworten oder neue Mail. Gesendet wird nur von Christian.
+   Von Claude schreiben lassen: geht als Auftrag an den Server, der Entwurf entsteht über ksb.ausgang in Christians Stimme. */
+function antwortKarte(L){
+  if (!KTX || KTX.modus !== "lesen" || (L && L.ist_entwurf)) return "";
+  return '<div class="ab antworten"><h2>Antworten</h2><div class="zeile">' +
+    '<button class="k" type="button" data-schreib="antwort">Antworten</button>' +
+    '<button class="k" type="button" data-schreib="alle">Allen antworten</button>' +
+    '<button class="k klein" type="button" data-schreib="neu">Neue Mail</button></div>' +
+    '<label class="feld" for="awTxt">Oder Claude schreibt den Entwurf. Was soll drinstehen?</label>' +
+    '<textarea id="awTxt" placeholder="Zum Beispiel: Danke, der Termin passt, Gage wie besprochen."></textarea>' +
+    '<div class="zeile" style="margin-top:6px"><button class="k haupt" type="button" data-schreib="claude">Entwurf schreiben lassen</button></div>' +
+    '<div class="meldung" id="awMs"></div></div>';
+}
+const htmlAus = t => esc(String(t || "")).replace(/\n/g, "<br>");
+function schreibFenster(art, text){
+  try{
+    const mb = Office.context.mailbox, it = mb.item, body = text ? {htmlBody: htmlAus(text)} : undefined;
+    if (art === "neu") return mb.displayNewMessageForm(body || {});
+    if (!it) return ms("awMs", "Keine Mail ausgewählt.", "krit");
+    if (art === "alle") return body ? it.displayReplyAllForm(body) : it.displayReplyAllForm("");
+    return body ? it.displayReplyForm(body) : it.displayReplyForm("");
+  }catch(e){ ms("awMs", "Outlook hat das Fenster nicht geöffnet. Bitte über Antworten oben in der Mail.", "krit"); }
+}
+// Brieftext aus einer Antwort von Claude holen: der längste Teil in Anführungszeichen, der über mehrere Zeilen geht.
+function briefAus(t){
+  const m = [...String(t || "").matchAll(/["„“]([\s\S]{20,}?)["“”]/g)].map(x => x[1]).filter(x => /\n/.test(x));
+  return m.sort((a, b) => b.length - a.length)[0] || "";
+}
+
 function spalteEins(L){
-  let h = '<div id="ablageBereich">' + ablageKarte() + '</div>';
+  let h = antwortKarte(L) + '<div id="ablageBereich">' + ablageKarte() + '</div>';
   const mi = L.mitte || {}, e = L.entwurf, a = L.ausgang;
   // Kurzfassung oben, als Lesetext
   if (mi.kurz) h += '<div class="ab"><p class="lesen gross">' + esc(ohneStrich(mi.kurz)) + "</p>" + (mi.kurz_aktuell === false ? '<div class="zeile"><span class="klein leise">Seit der Kurzfassung kam noch eine Mail.</span><button class="k klein" type="button" data-tu="kurz">Neu fassen</button></div>' : "") + "</div>";
@@ -460,7 +490,7 @@ function spalteDrei(L){
     WERKZEUGE.map((w, i) => '<button class="k klein" type="button" data-wz="' + i + '" title="' + esc(w[3]) + '">' + esc(w[2]) + "</button>").join("") + "</div>" +
     '<label class="feld" for="frTxt">Eigene Frage</label><textarea id="frTxt" placeholder="Zum Beispiel: Haben die je pünktlich gezahlt? Was haben wir 2023 angeboten?"></textarea><div class="zeile" style="margin-top:6px"><button class="k" type="button" data-tu="frage">Fragen</button></div><div id="antworten">';
   [...offeneFragen.entries()].forEach(([id, w]) => { h += '<div class="antwort" id="vt-' + id + '"><div class="wofuer">' + esc(w) + '</div><span class="warte">Claude liest nach. Das dauert eine bis zwei Minuten.</span></div>'; });
-  (mi.vertiefungen || []).slice().reverse().forEach(v => { if (!offeneFragen.has(v.id)) h += '<div class="antwort"><div class="wofuer">' + esc(v.frage ? kurzText(v.frage, 90) : v.stufe === 2 ? "Genauer erklärt" : "Nachgeforscht") + (v.alt ? ", vor der letzten Mail" : "") + '</div><p class="lesen">' + esc(ohneStrich(v.antwort || "")) + "</p></div>"; });
+  (mi.vertiefungen || []).slice().reverse().forEach(v => { if (!offeneFragen.has(v.id)) h += '<div class="antwort"><div class="wofuer">' + esc(v.frage ? kurzText(v.frage, 90) : v.stufe === 2 ? "Genauer erklärt" : "Nachgeforscht") + (v.alt ? ", vor der letzten Mail" : "") + '</div><p class="lesen">' + esc(ohneStrich(v.antwort || "")) + "</p>" + briefKnopf(v.antwort) + "</div>"; });
   h += "</div></div>";
   h += '<div id="analyseBereich">' + analyseKarte() + '</div>';
   h += '<div class="ab"><h2>Folgeaktionen</h2><div class="zeile">' + FOLGE.map((f, i) => '<button class="k klein" type="button" data-folge="' + i + '">' + esc(f[0]) + "</button>").join("") + '</div><div class="meldung" id="folgeMs"></div></div>';
@@ -654,6 +684,13 @@ async function klick(e){
   const b = e.target.closest("button, a[data-anh]"); if (!b) return;
   const L = LAGE || {};
   if (b.dataset.analyse){ await analyseKlick(b.dataset.analyse); return; }
+  if (b.dataset.schreib){
+    const w = b.dataset.schreib;
+    if (w === "claude"){ const t = ($("awTxt").value || "").trim(); if (!t){ ms("awMs", "Bitte schreib kurz, was drinstehen soll.", "krit"); return; }
+      befehl("Antwortentwurf auf diese Mail an den Absender, in Christians Stimme, nur als Entwurf über ksb.ausgang, nichts senden. Inhalt: " + t, "awMs", () => { $("awTxt").value = ""; }); return; }
+    schreibFenster(w); return;
+  }
+  if (b.dataset.brief != null){ schreibFenster("antwort", b.dataset.brief); return; }
   if (b.dataset.ablage || b.dataset.ablageGrund){ await ablageKlick(b.dataset.ablage, b.dataset.ablageGrund); return; }
   if (b.dataset.reiter){ REITER = b.dataset.reiter; document.querySelector(".raster").dataset.reiter = REITER; document.querySelectorAll(".reiter button").forEach(x => x.setAttribute("aria-selected", x === b)); window.scrollTo(0, 0); return; }
   if (b.dataset.auf){ ["handAendern", "handSpaeter"].forEach(id => { const x = $(id); if (x) x.hidden = !(id === "hand" + (b.dataset.auf === "aendern" ? "Aendern" : "Spaeter") && x.hidden); }); return; }
@@ -774,6 +811,7 @@ async function fragen(stufe, frage, wofuer){
     offeneFragen.set(r.id, wofuer); zeichnen(); warteAuf(r.id);
   }catch(x){ alertLeise("Geht gerade nicht."); }
 }
+function briefKnopf(t){ const b = briefAus(t); return b ? '<div class="zeile"><button class="k klein" type="button" data-brief="' + esc(b) + '">Als Antwort öffnen</button></div>' : ""; }
 function alertLeise(t){ const a = $("antworten"); if (a) a.insertAdjacentHTML("afterbegin", '<div class="meldung krit">' + esc(t) + "</div>"); }
 async function warteAuf(id){
   for (let i = 0; i < 60; i++){
@@ -784,7 +822,7 @@ async function warteAuf(id){
       if (st === "FERTIG" || st === "FEHLER"){
         const box = $("vt-" + id), ant = r.antwort || (r.vertiefung && r.vertiefung.antwort) || "";
         offeneFragen.delete(id);
-        if (box) box.innerHTML = '<div class="wofuer">' + esc(box.querySelector(".wofuer").textContent) + '</div><p class="lesen">' + esc(ohneStrich(ant)) + "</p>";
+        if (box) box.innerHTML = '<div class="wofuer">' + esc(box.querySelector(".wofuer").textContent) + '</div><p class="lesen">' + esc(ohneStrich(ant)) + "</p>" + briefKnopf(ant);
         return;
       }
     }catch(x){}
