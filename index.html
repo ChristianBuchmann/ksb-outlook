@@ -162,6 +162,15 @@ details.auf[open] > summary::before{content:"− ";}
   <div class="leer">Lädt.</div>
 </div>
 <script>
+/* Christian 17.11.2026 17:26: Outlook zeigte nach der Veröffentlichung die alte Seitenleiste aus dem Zwischenspeicher.
+   Beim Start liest die Seite ihre eigene Adresse ohne Zwischenspeicher. Steht dort ein anderer Stand, lädt sie einmal neu. */
+const SL_STAND = "2026-11-17-ablage-1";
+(async () => { try {
+  const r = await fetch(location.href.split("#")[0], {cache: "no-store"}); const t = await r.text();
+  const m = t.match(/const SL_STAND = "([^"]+)"/);
+  if (m && m[1] !== SL_STAND && sessionStorage.getItem("sl-neu") !== m[1]) { sessionStorage.setItem("sl-neu", m[1]); location.reload(); }
+} catch {} })();
+
 "use strict";
 const API = "https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/outlook-assistent";
 const GROSS = new URLSearchParams(location.search).has("gross");
