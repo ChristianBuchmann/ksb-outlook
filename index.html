@@ -464,74 +464,83 @@ function spalteDrei(L){
 const groesse = b => { b = Number(b || 0); return b > 1e6 ? (b / 1e6).toLocaleString("de-AT", {maximumFractionDigits: 1}) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB"; };
 const geld = (v, w) => v == null ? "" : Number(v).toLocaleString("de-AT", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " " + (w || "EUR");
 
-/* ---------- Konkrete Ablage ---------- */
+/* ---------- Konkrete Ablage ----------
+   Christian 17.11.2026 14:24: Eine Mail muss sich direkt ablegen lassen, ohne Vorprüfung.
+   Ein Klick auf den Grund legt ab (Vorschau und Auslösung in einem Zug).
+   Hält ein offener Punkt auf, stehen die Punkte da und ein Klick auf »Trotzdem ablegen« legt ab. */
 let ABLAGE_NR = 0;
-let ABLAGE_STAND = {grund:"ERLEDIGT",phase:"START",vorschau:null,hinweis:"",laeuft:false};
-function ablageZuruecksetzen(){ ++ABLAGE_NR; ABLAGE_STAND = {grund:"ERLEDIGT",phase:"START",vorschau:null,hinweis:"",laeuft:false}; }
+let ABLAGE_STAND = {grund:"",phase:"START",vorschau:null,hinweis:"",laeuft:false,gruende:[]};
+function ablageZuruecksetzen(){ ++ABLAGE_NR; ABLAGE_STAND = {grund:"",phase:"START",vorschau:null,hinweis:"",laeuft:false,gruende:[]}; }
 function ablageErlaubt(){ return !!(SCHLUESSEL && KTX && KTX.graph && KTX.modus === "lesen" && LAGE && LAGE.ablage_erlaubt === true && LAGE.ist_entwurf !== true); }
+const ABLAGE_GRUENDE = [["ERLEDIGT","Erledigt"],["BEANTWORTET","Beantwortet"],["UEBERHOLT","Überholt"]];
 function ablageKarte(){
   if (!ablageErlaubt()) return "";
-  const s = ABLAGE_STAND, v = s.vorschau, sperre = s.laeuft || s.phase === "UNGEKLAERT" || s.phase === "BESTAETIGT";
+  const s = ABLAGE_STAND, v = s.vorschau;
   let h = '<div class="ab ablage" aria-label="Ausgewählte Mail ablegen"><h2>Mail ablegen</h2>';
-  h += '<div class="ablage-stufe"><h3>1. Grund</h3><div class="zeile">' + [["ERLEDIGT","Erledigt"],["BEANTWORTET","Beantwortet"],["UEBERHOLT","Überholt"]].map(([k,t]) => '<button class="k klein" type="button" data-ablage-grund="' + k + '" aria-pressed="' + (s.grund === k) + '"' + (sperre ? ' disabled' : '') + '>' + t + '</button>').join("") + '</div></div>';
-  h += '<div class="ablage-stufe"><h3>2. Vorschau</h3><p class="klein leise">Ausgewählte Mail und Ziel prüfen.</p>';
-  if (v) h += '<dl class="fakten"><dt>Mail</dt><dd>' + esc(v.betreff) + '</dd><dt>Ziel</dt><dd>' + esc(v.ziel) + '</dd></dl>';
-  if (s.phase === "HALT") h += '<ul class="ablage-halt">' + (s.gruende || []).map(g => '<li>' + esc(g) + '</li>').join("") + '</ul>';
-  h += '<button class="k klein" type="button" data-ablage="vorschau"' + (sperre ? ' disabled' : '') + '>' + (s.laeuft && s.phase === "PRUEFEN" ? 'Wird geprüft.' : 'Vorschau prüfen') + '</button></div>';
-  h += '<div class="ablage-stufe"><h3>3. Ablage</h3>';
-  if (s.phase === "BESTAETIGT") h += '<p class="meldung gut" role="status">Ablage bestätigt.</p>';
-  else if (s.phase === "UNGEKLAERT") h += '<p class="meldung krit" role="status">' + esc(s.hinweis || "Ablage nicht bestätigt.") + '</p><button class="k" type="button" data-ablage="nachlesen"' + (s.laeuft ? ' disabled' : '') + '>Ergebnis nachlesen</button>';
-  else h += '<button class="k haupt" type="button" data-ablage="ausfuehren"' + (s.phase === "BEREIT" && !s.laeuft ? '' : ' disabled') + '>Jetzt ablegen</button>' + (s.hinweis ? '<p class="meldung krit" role="status">' + esc(s.hinweis) + '</p>' : '<p class="klein leise">Erst nach der Vorschau ausdrücklich auslösen.</p>');
-  return h + '</div></div>';
+  if (s.phase === "BESTAETIGT"){
+    return h + '<p class="meldung gut" role="status">Abgelegt' + (v && v.ziel ? ' in ' + esc(v.ziel) : '') + '.</p></div>';
+  }
+  if (s.phase === "UNGEKLAERT"){
+    return h + '<p class="meldung krit" role="status">' + esc(s.hinweis || "Ablage nicht bestätigt.") + '</p><button class="k" type="button" data-ablage="nachlesen"' + (s.laeuft ? ' disabled' : '') + '>Ergebnis nachlesen</button></div>';
+  }
+  if (s.phase === "HALT"){
+    if (s.hinweis) h += '<p class="meldung krit" role="status">' + esc(s.hinweis) + '</p>';
+    h += '<p class="klein">Offen ist noch:</p><ul class="ablage-halt">' + (s.gruende || []).map(g => '<li>' + esc(g) + '</li>').join("") + '</ul>';
+    h += '<div class="zeile"><button class="k haupt" type="button" data-ablage="trotzdem"' + (s.laeuft ? ' disabled' : '') + '>' + (s.laeuft ? 'Wird abgelegt.' : 'Trotzdem ablegen') + '</button>';
+    h += '<button class="k klein" type="button" data-ablage="zurueck"' + (s.laeuft ? ' disabled' : '') + '>Nicht ablegen</button></div></div>';
+    return h;
+  }
+  h += '<p class="klein leise">Grund antippen, die Mail geht sofort ins Archiv.</p><div class="zeile">' + ABLAGE_GRUENDE.map(([k,t]) => '<button class="k klein" type="button" data-ablage-grund="' + k + '"' + (s.laeuft ? ' disabled' : '') + '>' + (s.laeuft && s.grund === k ? 'Wird abgelegt.' : t) + '</button>').join("") + '</div>';
+  if (s.hinweis) h += '<p class="meldung krit" role="status">' + esc(s.hinweis) + '</p>';
+  return h + '</div>';
 }
 function ablageZeichnen(){ const el = $("ablageBereich"); if (el) el.innerHTML = ablageKarte(); }
 async function ablageKlick(tu, grund){
   if (!ablageErlaubt() || ABLAGE_STAND.laeuft) return;
-  let s = ABLAGE_STAND;
+  const s0 = ABLAGE_STAND;
+  if (tu === "zurueck"){ ablageZuruecksetzen(); ablageZeichnen(); return; }
   if (grund){
-    if (!["ERLEDIGT","BEANTWORTET","UEBERHOLT"].includes(grund) || ["UNGEKLAERT","BESTAETIGT"].includes(s.phase)) return;
-    ablageZuruecksetzen(); ABLAGE_STAND.grund = grund; ablageZeichnen(); return;
-  }
-  if (!["vorschau","ausfuehren","nachlesen"].includes(tu)) return;
-  if (tu === "vorschau" && ["UNGEKLAERT","BESTAETIGT"].includes(s.phase)) return;
-  if (tu === "ausfuehren"){
-    if (s.phase !== "BEREIT" || !s.vorschau) return;
-    const bis = Date.parse(s.vorschau.gueltig_bis);
-    if (!Number.isFinite(bis) || bis <= Date.now()){
-      const g = s.grund; ablageZuruecksetzen(); ABLAGE_STAND.grund = g; ABLAGE_STAND.hinweis = "Die Vorschau ist abgelaufen. Bitte neu prüfen."; ablageZeichnen(); return;
-    }
-  }
-  if (tu === "nachlesen" && (s.phase !== "UNGEKLAERT" || !s.vorschau)) return;
+    if (!ABLAGE_GRUENDE.some(x => x[0] === grund) || ["UNGEKLAERT","BESTAETIGT"].includes(s0.phase)) return;
+    ablageZuruecksetzen(); ABLAGE_STAND.grund = grund;
+  } else if (tu === "trotzdem"){
+    if (s0.phase !== "HALT" || !s0.grund) return;
+  } else if (tu !== "nachlesen" || s0.phase !== "UNGEKLAERT" || !s0.vorschau || !s0.vorschau.token) return;
+  const s = ABLAGE_STAND, trotzdem = tu === "trotzdem";
   const nr = ++ABLAGE_NR, mid = KTX.graph, key = SCHLUESSEL;
   const gilt = () => nr === ABLAGE_NR && SCHLUESSEL === key && KTX && KTX.graph === mid && ablageErlaubt();
-  s.laeuft = true;
-  if (tu === "vorschau"){ s.phase = "PRUEFEN"; s.vorschau = null; s.hinweis = ""; }
-  ablageZeichnen();
+  s.laeuft = true; s.hinweis = ""; ablageZeichnen();
+  const ungeklaert = r => { s.phase = "UNGEKLAERT"; s.hinweis = r && r.fehler || "Ablage nicht bestätigt. Bitte das Ergebnis nachlesen."; };
   try{
-    const args = tu === "vorschau" ? {id:mid,grund:s.grund} : {id:mid,token:s.vorschau.token};
-    const r = await api(tu === "vorschau" ? "ablage_vorschau" : tu === "nachlesen" ? "ablage_nachlesen" : "ablage_ausfuehren", args);
+    if (tu === "nachlesen"){
+      const r = await api("ablage_nachlesen", {id:mid,token:s.vorschau.token});
+      if (!gilt()) return;
+      if (r && r.ok === true && r.status === "BESTAETIGT"){ s.phase = "BESTAETIGT"; delete s.vorschau.token; }
+      else if (r && r.ok === true && r.status === "NICHT_AUSGELOEST"){ s.phase = "UNGEKLAERT"; s.hinweis = "Noch keine Auslösung bestätigt. Bitte das Ergebnis erneut nachlesen."; }
+      else ungeklaert(r);
+      return;
+    }
+    if (trotzdem){
+      // Christians Entscheidung festhalten. Sie hebt die offenen Punkte für diese Mail 15 Minuten lang auf (ksb.ablage_haltegrund).
+      if (!KTX.imid){ s.hinweis = "Diese Mail lässt sich hier nicht trotzdem ablegen. Bitte in Outlook verschieben."; return; }
+      const e = await api("handeln", {graph:mid, imid:KTX.imid, conv:(LAGE && LAGE.conv) || null, wahl:"ERLEDIGT", text:"Ablage trotzdem (" + s.grund + "): " + (s.gruende || []).join(", ")});
+      if (!gilt()) return;
+      if (!e || e.ok !== true){ s.hinweis = e && e.fehler || "Entscheidung nicht gespeichert. Bitte noch einmal."; return; }
+    }
+    const v = await api("ablage_vorschau", {id:mid,grund:s.grund});
     if (!gilt()) return;
-    if (tu === "vorschau"){
-      if (r && r.ok === true && typeof r.betreff === "string" && typeof r.ziel === "string"){
-        s.vorschau = {betreff:r.betreff,ziel:r.ziel};
-        if (r.bereit === true && /^[a-f0-9]{64}$/.test(r.token || "") && Number.isFinite(Date.parse(r.gueltig_bis))){
-          if (Date.parse(r.gueltig_bis) <= Date.now()){ s.phase = "FEHLER"; s.hinweis = "Die Vorschau ist abgelaufen. Bitte neu prüfen."; }
-          else { s.phase = "BEREIT"; s.vorschau.token = r.token; s.vorschau.gueltig_bis = r.gueltig_bis; }
-        }else if (r.bereit === false && Array.isArray(r.gruende) && r.gruende.length && r.gruende.every(g => typeof g === "string")){
-          s.phase = "HALT"; s.gruende = r.gruende; s.hinweis = "Offene Punkte zuerst klären.";
-        }else { s.phase = "FEHLER"; s.hinweis = "Vorschau nicht bestätigt. Bitte erneut prüfen."; }
-      }else { s.phase = "FEHLER"; s.hinweis = r && r.fehler || "Vorschau nicht bestätigt. Bitte erneut prüfen."; }
-    }else if (r && r.ok === true && r.status === "BESTAETIGT"){
-      s.phase = "BESTAETIGT"; delete s.vorschau.token;
-    }else if (tu === "nachlesen" && r && r.ok === true && r.status === "NICHT_AUSGELOEST"){
-      // Eine erste Anfrage kann noch im Claim warten. Token und Nachleseweg
-      // erhalten; der aktuelle Lesestand ist keine endgültige Nichtausführung.
-      s.phase = "UNGEKLAERT"; s.hinweis = "Noch keine Auslösung bestätigt. Bitte das Ergebnis erneut nachlesen.";
-    }else { s.phase = "UNGEKLAERT"; s.hinweis = r && r.fehler || "Ablage nicht bestätigt. Bitte das Ergebnis nachlesen."; }
+    if (!(v && v.ok === true && typeof v.betreff === "string" && typeof v.ziel === "string")){ s.phase = "START"; s.hinweis = v && v.fehler || "Die Mail ließ sich nicht ablegen. Bitte noch einmal."; return; }
+    s.vorschau = {betreff:v.betreff,ziel:v.ziel};
+    if (v.bereit === false && Array.isArray(v.gruende) && v.gruende.length){ s.phase = "HALT"; s.gruende = v.gruende.filter(g => typeof g === "string"); return; }
+    if (!(v.bereit === true && /^[a-f0-9]{64}$/.test(v.token || ""))){ s.phase = "START"; s.hinweis = "Die Mail ließ sich nicht ablegen. Bitte noch einmal."; return; }
+    s.vorschau.token = v.token; s.vorschau.gueltig_bis = v.gueltig_bis;
+    const r = await api("ablage_ausfuehren", {id:mid,token:v.token});
+    if (!gilt()) return;
+    if (r && r.ok === true && r.status === "BESTAETIGT"){ s.phase = "BESTAETIGT"; delete s.vorschau.token; }
+    else ungeklaert(r);
   }catch{
     if (!gilt()) return;
-    s.phase = tu === "vorschau" ? "FEHLER" : "UNGEKLAERT";
-    s.hinweis = tu === "vorschau" ? "Vorschau nicht geladen. Bitte erneut prüfen." : "Ablage nicht bestätigt. Bitte das Ergebnis nachlesen.";
+    if (s.vorschau && s.vorschau.token){ s.phase = "UNGEKLAERT"; s.hinweis = "Ablage nicht bestätigt. Bitte das Ergebnis nachlesen."; }
+    else { s.phase = "START"; s.hinweis = "Keine Verbindung. Bitte noch einmal."; }
   }finally{
     if (gilt()){ ABLAGE_STAND.laeuft = false; ablageZeichnen(); }
   }
