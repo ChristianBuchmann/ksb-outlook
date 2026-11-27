@@ -5,6 +5,7 @@
 
 import { projekteModul } from './projekte.js';
 import { gespraechModul } from './gespraech.js';
+import { entwurfModul } from './entwurf.js';
 const VERSION = 21;
 const API = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk';
 const API_G = 'https://gjbvlrztbejymrqctopj.supabase.co/functions/v1/desk-gespraech';
@@ -93,6 +94,7 @@ async function api(aufruf, args = {}, opt = {}) {
   if (!r.ok || j.ok === false) throw new Error(j.fehler || `Fehler ${r.status}`);
   return j;
 }
+const ENTWURF = entwurfModul({ api, app, h });
 const apiG = (aufruf, args = {}) => api(aufruf, args, { url: API_G });
 function abmeldenLokal() { S.sitzung = ''; S.wer = null; S.lage = null; S.heute = null; localStorage.removeItem(SITZUNG_KEY); }
 
@@ -276,15 +278,15 @@ async function presseSetzen(id, patch, zurueck) {
 }
 async function anmelden(email) {
   S.laden.anmelden = true; render();
-  try { const r = await api('anmelden', { email }); S.anmeldeHinweis = r.grund ? `${r.hinweis} (${r.grund})` : r.hinweis; }
+  try { const { seite, arg } = route(); const r = await api('anmelden', { email, entwurf: seite === 'entwurf' ? Number(arg) : null }); S.anmeldeHinweis = r.grund ? `${r.hinweis} (${r.grund})` : r.hinweis; }
   catch (e) { S.fehler = e.message; }
   S.laden.anmelden = false; render();
 }
-async function einloesen(token) {
+async function einloesen(token, entwurf) {
   try {
     const r = await api('anmeldung_einloesen', { token });
     S.sitzung = r.sitzung; localStorage.setItem(SITZUNG_KEY, r.sitzung); S.wer = { email: r.email, name: r.name };
-    history.replaceState(null, '', location.pathname + '#ablage');
+    history.replaceState(null, '', location.pathname + (entwurf ? '#entwurf/' + entwurf : '#ablage'));
   } catch (e) { S.fehler = 'Anmeldung: ' + e.message; history.replaceState(null, '', location.pathname + '#anmelden'); }
 }
 async function abmelden() { try { await api('abmelden'); } catch { /* egal */ } abmeldenLokal(); nav('anmelden'); render(); }
@@ -556,6 +558,7 @@ function seiteTechnik() {
 function render() {
   const { seite, arg } = route();
   if (!S.sitzung) { app.innerHTML = seiteAnmelden(); return; }
+  if (seite === 'entwurf') { ENTWURF.ansicht(Number(arg)); return; }
   let inhalt;
   if (seite === 'heute') inhalt = seiteHeute();
   else if (seite === 'knoepfe') inhalt = seiteKnoepfe(null);
@@ -575,6 +578,7 @@ function render() {
 async function seiteLaden() {
   if (!S.sitzung) { render(); return; }
   const { seite, arg } = route();
+  if (seite === 'entwurf') { render(); return; }
   if (!S.lage) await ladeLage();
   if (seite === 'heute') await ladeHeute();
   if (seite === 'knopf' && arg) { if (!S.knopf[arg]) render(); await ladeKnopf(arg); }
@@ -662,8 +666,8 @@ window.addEventListener('resize', () => { clearTimeout(window.__rs); window.__rs
 
 // ---------- Start ----------
 (async () => {
-  const m = location.hash.match(/#t=([A-Za-z0-9_-]{20,})/);
-  if (m) { await einloesen(m[1]); }
+  const m = location.hash.match(/^#t=([A-Za-z0-9_-]{20,})(?:&entwurf=([1-9]\d*))?$/);
+  if (m) { await einloesen(m[1], m[2]); }
   if (S.sitzung && !S.wer) { try { const w = await api('wer'); S.wer = { email: w.email, name: w.name }; } catch { /* abgemeldet, zeigt Anmeldung */ } }
   if (!location.hash || location.hash.startsWith('#t=')) history.replaceState(null, '', location.pathname + '#ablage');
   await seiteLaden();
